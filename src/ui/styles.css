@@ -2319,6 +2319,7 @@ input:focus {
 .fx-cracks {
   width: 110vw;
   height: 70vh;
+  overflow: visible;
 }
 .fx-cracks path {
   fill: none;

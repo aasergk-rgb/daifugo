@@ -34,7 +34,9 @@ export function Lobby({ client, onExit }: { client: GameClient; onExit: () => vo
   const mine = room.seats.find((s) => s.id === snap.seatId);
   const isHost = !!mine?.isHost;
   const preset = matchPreset(room.config);
-  const url = `${location.origin}${location.pathname}?room=${room.code}&mode=${client.conn.mode === 'server' ? 'server' : 'p2p'}`;
+  const keep = new URLSearchParams(location.search);
+  const extra = ['peerHost', 'peerPort', 'peerPath', 'peerSecure'].filter((k) => keep.get(k)).map((k) => `&${k}=${encodeURIComponent(keep.get(k)!)}`).join('');
+  const url = `${location.origin}${location.pathname}?room=${room.code}&mode=${client.conn.mode === 'server' ? 'server' : 'p2p'}${extra}`;
 
   const copy = async () => {
     try {

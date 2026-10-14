@@ -164,7 +164,33 @@ export interface PeerSettings {
   secure?: boolean;
 }
 
-let peerSettings: PeerSettings = {};
+/**
+ * シグナリングサーバー（既定は PeerJS の公開サーバー）。
+ * 自前の PeerServer を使う場合はビルド時の VITE_PEER_HOST / VITE_PEER_PORT / VITE_PEER_PATH / VITE_PEER_SECURE、
+ * または URL の ?peerHost=&peerPort=&peerPath=&peerSecure= で指定できる。
+ */
+function initialPeerSettings(): PeerSettings {
+  const s: PeerSettings = {};
+  const env = (import.meta as any).env || {};
+  let q: URLSearchParams | null = null;
+  try {
+    q = new URLSearchParams(window.location.search);
+  } catch {
+    /* ignore */
+  }
+  const host = q?.get('peerHost') || env.VITE_PEER_HOST;
+  if (host) {
+    s.host = host;
+    const port = q?.get('peerPort') || env.VITE_PEER_PORT;
+    if (port) s.port = Number(port);
+    s.path = q?.get('peerPath') || env.VITE_PEER_PATH || '/';
+    const sec = q?.get('peerSecure') ?? env.VITE_PEER_SECURE;
+    s.secure = sec !== undefined ? sec === 'true' || sec === '1' : window.location.protocol === 'https:';
+  }
+  return s;
+}
+
+let peerSettings: PeerSettings = initialPeerSettings();
 export function setPeerSettings(s: PeerSettings) {
   peerSettings = s;
 }

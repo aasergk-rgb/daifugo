@@ -8,7 +8,8 @@ import { PRESETS, matchPreset, normalizeConfig, ruleBadges } from '../engine/rul
 import { Conn, PeerConn, WsConn, createLocalGame, hostP2P, serverAvailable } from '../net/connection';
 import { AVATARS, CPU_NAMES } from '../net/protocol';
 import type { Screen } from './App';
-import { GameClient } from './client';
+import { GameClient, Tone } from './client';
+import { EffectLayer } from './components/EffectLayer';
 import { PlayingCard } from './components/PlayingCard';
 import { RuleEditor } from './components/RuleEditor';
 import { BACKS, THEMES, updateSettings, useSettings } from './settings';
@@ -253,7 +254,10 @@ export function OnlineScreen({ onBack, onStart }: { onBack: () => void; onStart:
     }
     const client = new GameClient(conn, { name: playerName(settings), avatar: settings.avatar, token });
     if (host) client.send({ t: 'config', config: settings.rules });
-    history.replaceState(null, '', `?room=${conn.code || ''}&mode=${conn.mode}`);
+    const q = new URLSearchParams(location.search);
+    q.set('room', conn.code || '');
+    q.set('mode', conn.mode);
+    history.replaceState(null, '', `?${q.toString()}`);
     onStart(client);
   };
 
@@ -577,8 +581,29 @@ export function HowTo({ onBack }: { onBack: () => void }) {
 
 // ───────────── 開発用: 全カード ─────────────
 
+const FX_DEMO: Record<string, [string, string, Tone]> = {
+  revolution: ['革命', 'REVOLUTION ― 強さが逆転！', 'red'],
+  counter: ['革命返し', 'COUNTER REVOLUTION', 'blue'],
+  eightCut: ['八切り', '場が流れる！', 'gold'],
+  lock: ['激縛り', '♥ 次は1つ上の数字のみ', 'blue'],
+  daifugo: ['大富豪', '小町 が一番乗り！', 'gold'],
+  miyako: ['都落ち', '銀次 が大貧民に転落', 'ink'],
+  gekokujo: ['下剋上', '身分がすべて逆転する！', 'red'],
+  bomber: ['Qボンバー', '「4・7」を全員が捨てる', 'red'],
+  spade3: ['スペ3返し', 'ジョーカー撃破！', 'blue'],
+};
+
 export function Gallery() {
   const deck: Card[] = fullDeck(2);
+  const fx = new URLSearchParams(location.search).get('fx');
+  const demo = fx && FX_DEMO[fx];
+  if (demo) {
+    return (
+      <div className="screen gallery fx-demo">
+        <EffectLayer effect={{ id: 1, kind: fx, title: demo[0], sub: demo[1], tone: demo[2], duration: 99999 }} />
+      </div>
+    );
+  }
   return (
     <div className="screen gallery">
       {SUITS.map((s) => (

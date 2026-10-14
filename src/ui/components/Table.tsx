@@ -276,7 +276,7 @@ export function Table({ client, onExit }: { client: GameClient; onExit: () => vo
           )}
         </div>
 
-        <div className="discard" style={{ left: w * 0.5 + Math.min(w * 0.38, 330), top: h * 0.5 }}>
+        <div className="discard" style={w < h * 0.95 ? { left: w * 0.84, top: h * 0.8 } : { left: w * 0.5 + Math.min(w * 0.38, 330), top: h * 0.5 }}>
           <div className="discard-stack">
             {Array.from({ length: Math.min(5, Math.ceil(view.discardCount / 6)) }, (_, i) => (
               <span key={i} className="mini-back big" style={{ transform: `rotate(${i * 13 - 20}deg) translate(${i}px, ${-i}px)` }} />
