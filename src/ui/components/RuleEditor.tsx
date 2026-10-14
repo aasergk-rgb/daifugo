@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { rankLabel } from '../../engine/cards';
 import { EFFECT_INFO, EFFECT_KEYS, EffectKey, effectDisplayName, PRESETS, RuleConfig, cloneConfig, matchPreset, normalizeConfig, ruleBadges } from '../../engine/rules';
 import { genId } from '../../net/protocol';
@@ -179,7 +180,8 @@ export function RuleEditor({ value, onChange, onClose, title = 'ルール設定'
     document.getElementById(`rs-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  return (
+  // 親要素の backdrop-filter に閉じ込められないよう body 直下に描画する
+  return createPortal(
     <motion.div className="rule-editor" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 30 }}>
       <header className="re-head">
         <button className="btn ghost sm" onClick={onClose}>
@@ -361,6 +363,7 @@ export function RuleEditor({ value, onChange, onClose, title = 'ルール設定'
           )}
         </div>
       </div>
-    </motion.div>
+    </motion.div>,
+    document.body,
   );
 }

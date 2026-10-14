@@ -1288,6 +1288,7 @@ input:focus {
 }
 .re-section {
   margin-bottom: 22px;
+  scroll-margin-top: 96px;
 }
 .re-section h3 {
   font-family: var(--font-mincho);
