@@ -17,10 +17,12 @@ interface Props {
 
 export function Hand({ cards, width, cw, selected, playable, fresh, onToggle, dealKey, dealing, interactive }: Props) {
   const k = cards.length;
-  const avail = Math.max(cw, width - 24);
+  const spread = Math.min(2.6, 34 / Math.max(k, 1));
+  // 扇形に傾けた端のカードがはみ出さないよう、回転ぶんの余白を確保する
+  const tilt = Math.sin((((k - 1) / 2) * spread * Math.PI) / 180) * cw * 1.4 * 1.3;
+  const avail = Math.max(cw, width - 24 - tilt * 2);
   const gap = k > 1 ? Math.min(cw * 0.7, (avail - cw) / (k - 1)) : 0;
   const total = cw + gap * (k - 1);
-  const spread = Math.min(2.6, 34 / Math.max(k, 1));
   return (
     <div className="hand" style={{ height: cw * 1.4 + 40 }}>
       <AnimatePresence>
