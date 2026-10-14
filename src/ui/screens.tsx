@@ -29,6 +29,9 @@ function playerName(s: { name: string }) {
 
 // ───────────── タイトル ─────────────
 
+/** 通信が使えない環境向けのビルド（CPU対戦のみ） */
+export const OFFLINE_ONLY = (import.meta as any).env?.VITE_OFFLINE_ONLY === '1';
+
 const FLOAT_CARDS = ['S14', 'X1', 'H13', 'D12', 'C11', 'H15', 'S3', 'D8'];
 
 export function Title({ go }: { go: (s: Screen) => void }) {
@@ -36,7 +39,7 @@ export function Title({ go }: { go: (s: Screen) => void }) {
   const preset = matchPreset(settings.rules);
   const items: { s: Screen; label: string; sub: string; icon: string }[] = [
     { s: 'cpu', label: 'CPU対戦', sub: 'VS COMPUTER', icon: '🎴' },
-    { s: 'online', label: 'オンライン対戦', sub: 'ONLINE', icon: '🌐' },
+    { s: 'online', label: 'オンライン対戦', sub: OFFLINE_ONLY ? 'ダウンロード版で遊べます' : 'ONLINE', icon: '🌐' },
     { s: 'howto', label: '遊び方・ルール', sub: 'HOW TO PLAY', icon: '📜' },
     { s: 'settings', label: '設定', sub: 'SETTINGS', icon: '⚙' },
   ];
@@ -63,10 +66,11 @@ export function Title({ go }: { go: (s: Screen) => void }) {
           {items.map((it, i) => (
             <motion.button
               key={it.s}
-              className="menu-btn"
+              className={`menu-btn ${OFFLINE_ONLY && it.s === 'online' ? 'is-off' : ''}`}
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 + i * 0.1 }}
+              disabled={OFFLINE_ONLY && it.s === 'online'}
               onClick={() => {
                 sfx('click');
                 go(it.s);

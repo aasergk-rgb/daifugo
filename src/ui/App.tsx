@@ -18,7 +18,7 @@ export function App() {
   const [client, setClient] = useState<GameClient | null>(null);
 
   useEffect(() => {
-    document.documentElement.dataset.theme = settings.theme;
+    document.documentElement.dataset.skin = settings.theme;
     setReduceMotion(settings.reduceMotion);
     document.documentElement.classList.toggle('reduce-motion', settings.reduceMotion);
   }, [settings.theme, settings.reduceMotion]);

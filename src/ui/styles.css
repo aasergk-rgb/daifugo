@@ -4,7 +4,7 @@
    ═══════════════════════════════════════════════════════════ */
 
 :root,
-:root[data-theme='urushi'] {
+:root[data-skin='urushi'] {
   --bg-0: #07060b;
   --bg-1: #140b12;
   --bg-glow: rgba(160, 30, 45, 0.28);
@@ -37,7 +37,7 @@
   --font-latin: 'Cinzel', 'Times New Roman', serif;
 }
 
-:root[data-theme='casino'] {
+:root[data-skin='casino'] {
   --bg-0: #03100a;
   --bg-1: #062014;
   --bg-glow: rgba(40, 160, 90, 0.2);
@@ -53,7 +53,7 @@
   --accent: #e94560;
 }
 
-:root[data-theme='sakura'] {
+:root[data-skin='sakura'] {
   --bg-0: #080816;
   --bg-1: #151330;
   --bg-glow: rgba(255, 140, 190, 0.22);
@@ -73,7 +73,7 @@
   --back-line: #ffd0e2;
 }
 
-:root[data-theme='neon'] {
+:root[data-skin='neon'] {
   --bg-0: #05020c;
   --bg-1: #0d0420;
   --bg-glow: rgba(0, 245, 255, 0.16);
@@ -105,6 +105,7 @@
 html,
 body,
 #root {
+  color-scheme: dark;
   margin: 0;
   height: 100%;
   overflow: hidden;
@@ -735,6 +736,15 @@ input:focus {
 }
 .menu-btn:hover::before {
   transform: translateX(120%);
+}
+.menu-btn.is-off {
+  opacity: 0.45;
+  cursor: default;
+}
+.menu-btn.is-off:hover {
+  transform: none;
+  border-color: var(--panel-border);
+  box-shadow: none;
 }
 .mb-icon {
   font-size: 1.5rem;

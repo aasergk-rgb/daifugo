@@ -4,3 +4,4 @@ dist-server
 *.log
 .DS_Store
 test-results
+dist-artifact
