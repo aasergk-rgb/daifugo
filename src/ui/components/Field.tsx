@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { comboName } from '../../engine/combo';
 import type { PlayRecord } from '../../engine/game';
+import { useLite } from '../perf';
 import { PlayingCard } from './PlayingCard';
 import type { SeatPos } from './Seat';
 
@@ -23,6 +24,7 @@ interface Props {
 }
 
 export function Field({ plays, me, seats, w, h, cw, names, flushing, reduceMotion }: Props) {
+  const lite = useLite();
   const cx = w / 2;
   const cy = h * 0.5;
   const shown = plays.slice(-3);
@@ -42,7 +44,7 @@ export function Field({ plays, me, seats, w, h, cw, names, flushing, reduceMotio
               key={key}
               className="field-play"
               initial={false}
-              animate={{ y: -depth * cw * 0.22, scale: 1 - depth * 0.1, opacity: depth ? 0.72 - depth * 0.15 : 1, filter: depth ? 'brightness(0.65)' : 'brightness(1)' }}
+              animate={{ y: -depth * cw * 0.22, scale: 1 - depth * 0.1, opacity: depth ? 0.6 - depth * 0.15 : 1 }}
               exit={{ x: w * 0.38, y: -h * 0.1, scale: 0.4, opacity: 0, rotate: 40, transition: { duration: 0.5, ease: 'easeIn' } }}
               transition={{ duration: 0.35 }}
               style={{ zIndex: 10 - depth }}
@@ -58,7 +60,7 @@ export function Field({ plays, me, seats, w, h, cw, names, flushing, reduceMotio
                     style={{ width: cw, marginLeft: -cw / 2, marginTop: -cw * 0.7 }}
                     initial={reduceMotion ? { x, y: 0, opacity: 0 } : { x: from.x, y: from.y, rotate: r * 8 - 30, scale: 0.45, opacity: 0 }}
                     animate={{ x, y: 0, rotate: r, scale: 1, opacity: 1 }}
-                    transition={{ type: 'spring', stiffness: 260, damping: 24, delay: i * 0.04 }}
+                    transition={lite ? { duration: 0.22, ease: 'easeOut' } : { type: 'spring', stiffness: 260, damping: 24, delay: i * 0.04 }}
                   />
                 );
               })}

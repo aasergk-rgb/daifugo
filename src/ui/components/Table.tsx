@@ -10,6 +10,7 @@ import { isMyTurn, stateFromView, viewLegalPlays, viewRev, viewValidate } from '
 import { STAMPS } from '../../net/protocol';
 import { GameClient, useClient } from '../client';
 import { useDelayed, useNow, useSize } from '../hooks';
+import { useLite } from '../perf';
 import { updateSettings, useSettings } from '../settings';
 import { sfx } from '../sound';
 import { EffectLayer } from './EffectLayer';
@@ -21,6 +22,7 @@ import { Seat, seatLayout } from './Seat';
 export function Table({ client, onExit }: { client: GameClient; onExit: () => void }) {
   const snap = useClient(client);
   const settings = useSettings();
+  const lite = useLite();
   const view = snap.view!;
   const room = snap.room;
   const me = view.me;
@@ -458,6 +460,7 @@ export function Table({ client, onExit }: { client: GameClient; onExit: () => vo
               </button>
             )}
             <button onClick={() => updateSettings({ bgm: settings.bgm > 0 ? 0 : 0.35 })}>BGM：{settings.bgm > 0 ? 'ON' : 'OFF'}</button>
+            <button onClick={() => updateSettings({ graphics: lite ? 'high' : 'lite' })}>グラフィック：{lite ? '軽量' : '高画質'}</button>
             <button className="danger" onClick={onExit}>
               対戦をやめる
             </button>

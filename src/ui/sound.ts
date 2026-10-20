@@ -31,7 +31,10 @@ function ensure(): AudioContext | null {
     sfxGain = ctx.createGain();
     bgmGain = ctx.createGain();
     reverb = ctx.createConvolver();
-    reverb.buffer = impulse(ctx, 2.6);
+    // 残響の生成は重いので、手が空いたときに行う
+    const c0 = ctx;
+    const rv = reverb;
+    idle(() => (rv.buffer = impulse(c0, 1.8)));
     const wet = ctx.createGain();
     wet.gain.value = 0.35;
     reverb.connect(wet).connect(master);
@@ -69,16 +72,32 @@ export function configureSound(s: Partial<typeof settings>) {
 }
 
 /** ユーザー操作の後に呼ぶ（自動再生制限の解除） */
+let warmed = false;
 export function unlockAudio() {
   const c = ensure();
   if (c && c.state === 'suspended') c.resume().catch(() => {});
+  if (c && !warmed) {
+    warmed = true;
+    prewarm();
+  }
 }
 
-function noiseBuffer(c: AudioContext, sec: number): AudioBuffer {
-  const len = Math.floor(c.sampleRate * sec);
+function idle(fn: () => void) {
+  const ric = (window as any).requestIdleCallback as ((cb: () => void, o?: { timeout: number }) => void) | undefined;
+  if (ric) ric(fn, { timeout: 2000 });
+  else setTimeout(fn, 200);
+}
+
+// ノイズは 2 秒分を一度だけ作り、毎回ランダムな位置から切り出して使う
+let sharedNoise: AudioBuffer | null = null;
+const NOISE_SEC = 2;
+function noiseBuffer(c: AudioContext): AudioBuffer {
+  if (sharedNoise) return sharedNoise;
+  const len = Math.floor(c.sampleRate * NOISE_SEC);
   const buf = c.createBuffer(1, len, c.sampleRate);
   const d = buf.getChannelData(0);
   for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  sharedNoise = buf;
   return buf;
 }
 
@@ -89,7 +108,7 @@ function out(dest?: AudioNode | null) {
 function noise(t: number, dur: number, freq: number, q: number, vol: number, type: BiquadFilterType = 'bandpass', dest?: AudioNode) {
   const c = ctx!;
   const src = c.createBufferSource();
-  src.buffer = noiseBuffer(c, dur);
+  src.buffer = noiseBuffer(c);
   const f = c.createBiquadFilter();
   f.type = type;
   f.frequency.value = freq;
@@ -98,7 +117,7 @@ function noise(t: number, dur: number, freq: number, q: number, vol: number, typ
   g.gain.setValueAtTime(vol, t);
   g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   src.connect(f).connect(g).connect(out(dest));
-  src.start(t);
+  src.start(t, Math.random() * Math.max(0, NOISE_SEC - dur - 0.05));
   src.stop(t + dur);
   return f;
 }
@@ -118,12 +137,15 @@ function tone(t: number, freq: number, dur: number, vol: number, type: Oscillato
   o.stop(t + dur + 0.02);
 }
 
-/** 琴の音（Karplus-Strong） */
-function koto(t: number, freq: number, vol = 0.4, dest?: AudioNode) {
-  const c = ctx!;
+// 琴の音（Karplus-Strong）。音の高さごとに一度だけ合成してキャッシュする
+const KOTO_SEC = 2.2;
+const kotoCache = new Map<number, AudioBuffer>();
+function kotoBuffer(c: AudioContext, freq: number): AudioBuffer {
+  const key = Math.round(freq * 10);
+  const hit = kotoCache.get(key);
+  if (hit) return hit;
   const sr = c.sampleRate;
-  const dur = 2.2;
-  const len = Math.floor(sr * dur);
+  const len = Math.floor(sr * KOTO_SEC);
   const buf = c.createBuffer(1, len, sr);
   const d = buf.getChannelData(0);
   const period = Math.max(2, Math.floor(sr / freq));
@@ -131,14 +153,39 @@ function koto(t: number, freq: number, vol = 0.4, dest?: AudioNode) {
   for (let i = 0; i < period; i++) ring[i] = Math.random() * 2 - 1;
   let idx = 0;
   for (let i = 0; i < len; i++) {
-    const nx = (idx + 1) % period;
-    const v = (ring[idx] + ring[nx]) * 0.5 * 0.996;
+    const nx = idx + 1 === period ? 0 : idx + 1;
+    const v = (ring[idx] + ring[nx]) * 0.498;
     d[i] = ring[idx];
     ring[idx] = v;
     idx = nx;
   }
+  kotoCache.set(key, buf);
+  return buf;
+}
+
+/** よく使う音を空き時間に 1 つずつ作っておく */
+function prewarm() {
+  const c = ctx;
+  if (!c) return;
+  const steps: number[] = [];
+  for (let s = -5; s <= 17; s++) steps.push(s);
+  const next = () => {
+    const s = steps.shift();
+    if (s === undefined) return;
+    kotoBuffer(c, note(s));
+    idle(next);
+  };
+  idle(() => {
+    noiseBuffer(c);
+    next();
+  });
+}
+
+function koto(t: number, freq: number, vol = 0.4, dest?: AudioNode) {
+  const c = ctx!;
+  const dur = KOTO_SEC;
   const src = c.createBufferSource();
-  src.buffer = buf;
+  src.buffer = kotoBuffer(c, freq);
   const f = c.createBiquadFilter();
   f.type = 'lowpass';
   f.frequency.value = 4200;

@@ -245,7 +245,9 @@ export const CardSvg = memo(function CardSvg({ card, back }: { card: Card | null
       {card === null ? <Back back={back} /> : card.suit === 'X' ? <Joker card={card} /> : <Face card={card} />}
     </svg>
   );
-});
+},
+// カードの中身は ID で決まるので、状態が届くたびに新しく作られるオブジェクトでも描き直さない
+(a, b) => a.back === b.back && (a.card?.id ?? null) === (b.card?.id ?? null));
 
 // ───────────── 共有定義（グラデーション・和柄） ─────────────
 

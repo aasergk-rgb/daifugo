@@ -6,6 +6,7 @@ import { FxCanvas, setReduceMotion } from './components/FxCanvas';
 import { Lobby } from './components/Lobby';
 import { Table } from './components/Table';
 import { CpuSetup, Gallery, HowTo, OnlineScreen, SettingsScreen, Title } from './screens';
+import { onAutoDowngrade, setGraphicsMode, startFpsMonitor, useLite } from './perf';
 import { useSettings } from './settings';
 import { setBgm, unlockAudio } from './sound';
 
@@ -16,6 +17,17 @@ export function App() {
   const params = new URLSearchParams(location.search);
   const [screen, setScreen] = useState<Screen>(params.has('gallery') ? 'gallery' : params.get('room') ? 'online' : 'title');
   const [client, setClient] = useState<GameClient | null>(null);
+  const lite = useLite();
+  const [liteNotice, setLiteNotice] = useState(false);
+
+  useEffect(() => setGraphicsMode(settings.graphics), [settings.graphics]);
+  useEffect(() => {
+    onAutoDowngrade(() => {
+      setLiteNotice(true);
+      setTimeout(() => setLiteNotice(false), 4500);
+    });
+    startFpsMonitor();
+  }, []);
 
   useEffect(() => {
     document.documentElement.dataset.skin = settings.theme;
@@ -53,7 +65,8 @@ export function App() {
     <div className="app">
       <CardDefs />
       <div className="bg-layer" />
-      <FxCanvas theme={settings.theme} ambient={screen !== 'play' || true} />
+      {/* 対戦中は背景の粒を止める（演出の粒は出る） */}
+      <FxCanvas key={lite ? 'lite' : 'full'} theme={settings.theme} ambient={screen !== 'play'} />
       <AnimatePresence mode="wait">
         <motion.div key={screen} className="screen-wrap" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
           {screen === 'title' && <Title go={setScreen} />}
@@ -64,6 +77,13 @@ export function App() {
           {screen === 'gallery' && <Gallery />}
           {screen === 'play' && client && <PlayScreen client={client} onExit={exit} />}
         </motion.div>
+      </AnimatePresence>
+      <AnimatePresence>
+        {liteNotice && (
+          <motion.div className="lite-notice" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+            動作が重いため、軽量モードに切り替えました（設定で変更できます）
+          </motion.div>
+        )}
       </AnimatePresence>
     </div>
   );

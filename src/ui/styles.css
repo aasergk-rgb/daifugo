@@ -538,9 +538,7 @@ input:focus {
   position: relative;
   aspect-ratio: 5 / 7;
   border-radius: 7%/5%;
-  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.45));
-  transition: filter 0.2s;
-  will-change: transform;
+  box-shadow: 0 3px 7px rgba(0, 0, 0, 0.45);
 }
 .pcard .card-svg {
   width: 100%;
@@ -550,14 +548,21 @@ input:focus {
 .pcard.is-clickable {
   cursor: pointer;
 }
-.pcard.is-playable .card-svg {
-  filter: drop-shadow(0 0 0.5px var(--gold-hi)) drop-shadow(0 0 5px color-mix(in srgb, var(--gold) 80%, transparent));
+.pcard.is-playable {
+  box-shadow: 0 0 0 1.5px var(--gold-hi), 0 0 9px color-mix(in srgb, var(--gold) 75%, transparent), 0 3px 7px rgba(0, 0, 0, 0.45);
 }
-.pcard.is-dim .card-svg {
-  filter: brightness(0.5) saturate(0.6);
+/* 暗くするのはフィルターではなく半透明の重ね（再描画が軽い） */
+.pcard.is-dim::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(8, 6, 12, 0.52);
+  pointer-events: none;
+  z-index: 1;
 }
 .pcard.is-selected {
-  filter: drop-shadow(0 0 12px var(--gold)) drop-shadow(0 10px 14px rgba(0, 0, 0, 0.5));
+  box-shadow: 0 0 16px var(--gold), 0 10px 16px rgba(0, 0, 0, 0.5);
 }
 .pcard.is-selected::after {
   content: '';
@@ -568,8 +573,8 @@ input:focus {
   box-shadow: 0 0 14px var(--gold), inset 0 0 10px color-mix(in srgb, var(--gold) 50%, transparent);
   pointer-events: none;
 }
-.pcard.is-joker.is-playable .card-svg {
-  filter: drop-shadow(0 0 6px #c77dff);
+.pcard.is-joker.is-playable {
+  box-shadow: 0 0 0 1.5px #e0aaff, 0 0 10px #c77dff, 0 3px 7px rgba(0, 0, 0, 0.45);
 }
 .pcard-new {
   position: absolute;
@@ -676,7 +681,7 @@ input:focus {
   background-clip: text;
   color: transparent;
   filter: drop-shadow(0 4px 0 rgba(0, 0, 0, 0.6)) drop-shadow(0 0 24px color-mix(in srgb, var(--gold) 45%, transparent));
-  animation: shimmer 5s ease-in-out infinite;
+  background-position: 0 35%;
 }
 .logo-main span:nth-child(2) {
   animation-delay: 0.3s;
@@ -684,15 +689,6 @@ input:focus {
 }
 .logo-main span:nth-child(3) {
   animation-delay: 0.6s;
-}
-@keyframes shimmer {
-  0%,
-  100% {
-    background-position: 0 0%;
-  }
-  50% {
-    background-position: 0 100%;
-  }
 }
 .logo-en {
   font-family: var(--font-latin);
@@ -788,9 +784,10 @@ input:focus {
   width: clamp(70px, 10vw, 130px);
   animation: float 9s ease-in-out infinite;
   opacity: 0.85;
+  will-change: transform;
 }
 .float-card .pcard {
-  filter: drop-shadow(0 18px 24px rgba(0, 0, 0, 0.6));
+  box-shadow: 0 18px 30px rgba(0, 0, 0, 0.6);
 }
 .fc0 { left: 6%; top: 12%; --r: -18deg; animation-delay: 0s; }
 .fc1 { right: 7%; top: 10%; --r: 16deg; animation-delay: -2s; }
@@ -1459,6 +1456,7 @@ input:focus {
 }
 .felt {
   position: absolute;
+  transform: translateZ(0);
   inset: 4% 3% 2%;
   border-radius: 50% / 46%;
   background:
@@ -1529,12 +1527,14 @@ input:focus {
   width: 100%;
   height: 100%;
   overflow: visible;
+  will-change: transform;
 }
-.dir-ring.cw svg {
-  animation: spin 40s linear infinite;
+/* 常時回転は重いので止め、向きが変わったときだけ半回転させる */
+.dir-ring svg {
+  transition: transform 0.9s cubic-bezier(0.6, 0, 0.3, 1);
 }
 .dir-ring.ccw svg {
-  animation: spin 40s linear infinite reverse;
+  transform: rotate(180deg);
 }
 .dir-text {
   fill: var(--gold);
@@ -1552,12 +1552,14 @@ input:focus {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  box-shadow: inset 0 0 60px rgba(255, 60, 60, 0.45);
+  box-shadow: inset 0 0 110px rgba(255, 60, 60, 0.7);
+  opacity: 0.5;
+  will-change: opacity;
   animation: rev-pulse 2.4s ease-in-out infinite;
 }
 @keyframes rev-pulse {
   50% {
-    box-shadow: inset 0 0 110px rgba(255, 60, 60, 0.7);
+    opacity: 1;
   }
 }
 .table-screen.is-eleven .felt {
@@ -1585,10 +1587,9 @@ input:focus {
   gap: 8px;
   padding: 4px 12px;
   border-radius: 99px;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0.62);
   border: 1px solid var(--panel-border);
   font-size: 0.78rem;
-  backdrop-filter: blur(4px);
 }
 .st-label {
   font-weight: 900;
@@ -1759,6 +1760,7 @@ input:focus {
   font-size: 1.9rem;
 }
 .turn-ring {
+  will-change: transform;
   position: absolute;
   inset: -7px;
   border-radius: 50%;
@@ -1798,7 +1800,6 @@ input:focus {
   padding: 3px 10px 4px;
   text-align: center;
   min-width: 96px;
-  backdrop-filter: blur(4px);
 }
 .seat-name {
   font-weight: 900;
@@ -2016,7 +2017,9 @@ input:focus {
   top: 0;
 }
 .field-card.pcard {
-  filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.55));
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.55);
+  /* 場に飛んでくるカードだけは専用レイヤーで動かす（毎フレームの再描画を避ける） */
+  will-change: transform;
 }
 .field-label {
   position: absolute;
@@ -2086,6 +2089,7 @@ input:focus {
   background: radial-gradient(ellipse at center, color-mix(in srgb, var(--gold) 22%, transparent), transparent 70%);
   pointer-events: none;
   animation: breathe 2.4s ease-in-out infinite;
+  will-change: opacity;
 }
 @keyframes breathe {
   50% {
@@ -2221,6 +2225,7 @@ input:focus {
   background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.2) 60%, transparent);
 }
 .fx-title {
+  will-change: transform, opacity;
   position: relative;
   font-family: var(--font-brush);
   font-size: clamp(3.4rem, 15vw, 9rem);
@@ -2232,7 +2237,7 @@ input:focus {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  filter: drop-shadow(0 4px 0 rgba(0, 0, 0, 0.7)) drop-shadow(0 0 30px var(--fx-glow));
+  filter: drop-shadow(0 4px 0 rgba(0, 0, 0, 0.7)) drop-shadow(0 0 16px var(--fx-glow));
   white-space: nowrap;
 }
 .fx-sub {
@@ -2280,17 +2285,24 @@ input:focus {
 .fx-revolution .fx-backdrop,
 .fx-gekokujo .fx-backdrop {
   background: radial-gradient(ellipse at center, rgba(140, 0, 20, 0.75), rgba(40, 0, 5, 0.45) 60%, rgba(0, 0, 0, 0.2));
-  animation: flash-red 1.6s ease-out;
 }
-@keyframes flash-red {
+/* 閃光は色ではなく不透明度だけを動かす（毎フレームの塗り直しを避ける） */
+.fx-revolution .fx-backdrop::after,
+.fx-gekokujo .fx-backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  opacity: 0;
+  will-change: opacity;
+  animation: flash-white 0.9s ease-out;
+}
+@keyframes flash-white {
   0% {
-    background-color: rgba(255, 255, 255, 0.85);
-  }
-  15% {
-    background-color: rgba(255, 40, 40, 0.3);
+    opacity: 0.85;
   }
   100% {
-    background-color: transparent;
+    opacity: 0;
   }
 }
 .fx-revolution .fx-title,
@@ -2320,6 +2332,20 @@ input:focus {
 .fx-miyako .fx-title {
   font-size: clamp(2.8rem, 11vw, 6.5rem);
 }
+.fx-deco-inner {
+  width: 100%;
+  height: 100%;
+  will-change: transform, opacity;
+}
+.fx-deco-inner > svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  display: block;
+}
+.fx-slash .fx-deco-inner {
+  transform-origin: 0 100%;
+}
 .fx-deco {
   position: absolute;
   left: 50%;
@@ -2336,8 +2362,13 @@ input:focus {
   fill: none;
   stroke: #fff;
   stroke-width: 2;
-  filter: drop-shadow(0 0 6px #ff4d5e);
-  opacity: 0.75;
+  opacity: 0.8;
+}
+/* 光のにじみはフィルターではなく、太く薄い線を下に重ねて表現 */
+.fx-cracks path.glow {
+  stroke: #ff4d5e;
+  stroke-width: 9;
+  opacity: 0.3;
 }
 .fx-slash {
   width: 100vw;
@@ -2392,28 +2423,21 @@ input:focus {
   stroke: none;
 }
 .fx-rays {
-  width: 140vmax;
-  height: 140vmax;
+  width: 110vmax;
+  height: 110vmax;
   fill: rgba(255, 220, 120, 0.12);
 }
 .fx-spade {
   width: min(60vw, 360px);
   height: min(60vw, 360px);
   opacity: 0.35;
-  filter: drop-shadow(0 0 30px #8fd8ff);
-  animation: spade-pop 1.2s ease-out;
-}
-@keyframes spade-pop {
-  from {
-    transform: translate(-50%, -50%) scale(0.2) rotate(-30deg);
-    opacity: 0.9;
-  }
 }
 .fx-boom {
   width: min(90vw, 560px);
   height: min(90vw, 560px);
   fill: rgba(255, 120, 40, 0.35);
-  filter: drop-shadow(0 0 30px #ff4d5e);
+  stroke: rgba(255, 77, 94, 0.5);
+  stroke-width: 6;
 }
 .fx-miyako .fx-backdrop,
 .fx-foul .fx-backdrop {
@@ -2923,4 +2947,102 @@ input:focus {
   .panel {
     padding: 14px;
   }
+}
+
+/* ═══════════════ 軽量モード（.lite） ═══════════════
+   ぼかし・影・常時アニメーション・装飾パターンを止めて、低スペックPCでも滑らかに動かす */
+.lite *,
+.lite *::before,
+.lite *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.lite .bg-layer::after,
+.lite .felt-pattern,
+.lite .felt-logo,
+.lite .dir-ring,
+.lite .fc4,
+.lite .fc5,
+.lite .fc6,
+.lite .fc7,
+.lite .menu-btn::before,
+.lite .btn.glow::after,
+.lite .hand-area.is-acting::before {
+  display: none;
+}
+.lite .float-card,
+.lite .pcard-new,
+.lite .your-turn b.hurry,
+.lite .status-line.warn,
+.lite .st-arrow i,
+.lite .table-screen.is-revolution .felt::after {
+  animation: none;
+}
+.lite .turn-ring {
+  animation: none;
+  border-color: var(--gold);
+}
+.lite .logo-main span,
+.lite .fx-title,
+.lite .court-letter,
+.lite .fx-slash line,
+.lite .fx-cracks path {
+  filter: none;
+}
+.lite .logo-main span {
+  text-shadow: none;
+}
+.lite .pcard,
+.lite .field-card.pcard,
+.lite .float-card .pcard {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+.lite .pcard.is-selected {
+  box-shadow: 0 0 0 3px var(--gold-hi);
+}
+.lite .pcard.is-selected::after {
+  box-shadow: none;
+}
+.lite .pcard.is-playable {
+  box-shadow: 0 0 0 2px var(--gold);
+}
+.lite .felt {
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), inset 0 0 60px rgba(0, 0, 0, 0.5);
+}
+.lite .felt-rim,
+.lite .panel,
+.lite .modal,
+.lite .menu-btn:hover {
+  box-shadow: none;
+}
+.lite .fx-backdrop {
+  background: rgba(0, 0, 0, 0.5) !important;
+}
+.lite .fx-backdrop::after {
+  display: none;
+}
+.lite .avatar-emoji,
+.lite .seat.is-active .avatar-emoji {
+  box-shadow: none;
+}
+.lite .seat.is-active .avatar-emoji {
+  outline: 3px solid var(--gold);
+}
+
+.lite-notice {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 90;
+  background: rgba(10, 8, 14, 0.94);
+  border: 1px solid var(--gold);
+  color: var(--gold-hi);
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  text-align: center;
 }

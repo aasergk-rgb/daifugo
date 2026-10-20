@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from 'react';
 import type { Difficulty } from '../engine/ai';
 import { RuleConfig, normalizeConfig, presetConfig } from '../engine/rules';
+import type { GraphicsMode } from './perf';
 import { configureSound } from './sound';
 
 export type ThemeId = 'urushi' | 'casino' | 'sakura' | 'neon';
@@ -39,6 +40,7 @@ export interface Settings {
   speed: number; // CPU 速度倍率 (小さいほど速い)
   hints: boolean;
   reduceMotion: boolean;
+  graphics: GraphicsMode;
   sortMode: 'strength' | 'suit';
   cpuCount: number;
   cpuDifficulties: Difficulty[];
@@ -60,6 +62,7 @@ const defaults: Settings = {
   speed: 1,
   hints: true,
   reduceMotion: false,
+  graphics: 'auto',
   sortMode: 'strength',
   cpuCount: 3,
   cpuDifficulties: ['normal', 'normal', 'hard', 'normal', 'normal'],

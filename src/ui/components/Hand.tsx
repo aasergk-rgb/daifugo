@@ -1,5 +1,6 @@
 import { AnimatePresence } from 'framer-motion';
 import type { Card } from '../../engine/cards';
+import { useLite } from '../perf';
 import { PlayingCard } from './PlayingCard';
 
 interface Props {
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export function Hand({ cards, width, cw, selected, playable, fresh, onToggle, dealKey, dealing, interactive }: Props) {
+  const lite = useLite();
   const k = cards.length;
   const spread = Math.min(2.6, 34 / Math.max(k, 1));
   // 扇形に傾けた端のカードがはみ出さないよう、回転ぶんの余白を確保する
@@ -46,8 +48,12 @@ export function Hand({ cards, width, cw, selected, playable, fresh, onToggle, de
               initial={{ x: 0, y: -260, rotate: 0, opacity: 0, scale: 0.6 }}
               animate={{ x, y, rotate: off * spread, opacity: 1, scale: 1 }}
               exit={{ y: -200, opacity: 0, scale: 0.7, transition: { duration: 0.25 } }}
-              transition={{ type: 'spring', stiffness: 380, damping: 30, delay: dealing ? 0.3 + i * 0.05 : 0 }}
-              whileHover={interactive ? { y: y - cw * 0.12 } : undefined}
+              transition={
+                lite
+                  ? { duration: 0.18, ease: 'easeOut', delay: dealing ? 0.2 + i * 0.03 : 0 }
+                  : { type: 'spring', stiffness: 380, damping: 30, delay: dealing ? 0.3 + i * 0.05 : 0 }
+              }
+              whileHover={interactive && !lite ? { y: y - cw * 0.12 } : undefined}
               layout={false}
             />
           );

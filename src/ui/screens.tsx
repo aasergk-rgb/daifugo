@@ -12,6 +12,7 @@ import { GameClient, Tone } from './client';
 import { EffectLayer } from './components/EffectLayer';
 import { PlayingCard } from './components/PlayingCard';
 import { RuleEditor } from './components/RuleEditor';
+import { isLite } from './perf';
 import { BACKS, THEMES, updateSettings, useSettings } from './settings';
 import { sfx } from './sound';
 
@@ -453,6 +454,26 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
         </section>
         <section className="panel">
           <h3>表示・操作</h3>
+          <div className="seg-row">
+            <span>グラフィック</span>
+            <div className="seg sm">
+              {(
+                [
+                  ['auto', '自動'],
+                  ['high', '高画質'],
+                  ['lite', '軽量'],
+                ] as const
+              ).map(([v, l]) => (
+                <button key={v} className={s.graphics === v ? 'on' : ''} onClick={() => updateSettings({ graphics: v })}>
+                  {l}
+                </button>
+              ))}
+            </div>
+          </div>
+          <p className="muted small">
+            軽量モードでは、ぼかし・影・背景の粒・常に動く装飾を止めて、カードの動きを短くします。「自動」は端末が重そうなときに自動で軽量モードにします。
+            {s.graphics === 'auto' && <b>（現在：{isLite() ? '軽量' : '高画質'}）</b>}
+          </p>
           <div className="seg-row">
             <span>出せるカードを光らせる</span>
             <button className={`switch ${s.hints ? 'on' : ''}`} onClick={() => updateSettings({ hints: !s.hints })}>
