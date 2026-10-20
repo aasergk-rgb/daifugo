@@ -47,6 +47,8 @@ export interface ChatEntry {
 
 export interface ClientSnapshot {
   connected: boolean;
+  /** 接続が切れて再接続中 */
+  reconnecting: boolean;
   closed: string | null;
   room: RoomInfo | null;
   seatId: string | null;
@@ -70,6 +72,7 @@ let uid = 1;
 export class GameClient {
   private snap: ClientSnapshot = {
     connected: true,
+    reconnecting: false,
     closed: null,
     room: null,
     seatId: null,
@@ -94,9 +97,19 @@ export class GameClient {
   private skew = 0;
   token: string | null = null;
 
-  constructor(public conn: Conn, hello: { name: string; avatar: number; token?: string }) {
+  constructor(public conn: Conn, private hello: { name: string; avatar: number; token?: string }) {
     conn.onMessage = (m) => this.onMessage(m);
-    conn.onClose = (reason) => this.set({ connected: false, closed: reason });
+    conn.onClose = (reason) => this.set({ connected: false, reconnecting: false, closed: reason });
+    conn.onStatus = (st) => {
+      if (st === 'reconnecting') {
+        this.set({ reconnecting: true });
+        return;
+      }
+      // 再接続できたら、同じ席に戻るために合言葉（token）つきで名乗り直す
+      conn.send({ t: 'hello', ...this.hello, token: this.token ?? this.hello.token });
+      this.set({ reconnecting: false });
+      this.toast('再接続しました', 'gold');
+    };
     conn.send({ t: 'hello', ...hello });
   }
 

@@ -105,6 +105,12 @@ function PlayScreen({ client, onExit }: { client: GameClient; onExit: () => void
   const local = client.conn.mode === 'local';
   return (
     <>
+      {snap.reconnecting && !snap.closed && (
+        <div className="reconnect-banner" role="status">
+          <span className="spinner" />
+          接続が切れました。再接続しています…（その間はCPUが代わりに打ちます）
+        </div>
+      )}
       {inGame ? <Table client={client} onExit={() => (snap.view?.phase === 'matchEnd' ? onExit() : setConfirm(true))} /> : local ? <div className="screen center"><div className="loading"><span className="spinner" />準備中…</div></div> : <Lobby client={client} onExit={onExit} />}
       <AnimatePresence>
         {confirm && (

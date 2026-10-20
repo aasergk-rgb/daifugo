@@ -5,11 +5,15 @@ import { ClientMsg, LobbyMsg, ServerMsg, genCode, genId } from './protocol';
 import { Room } from './room';
 import { browserDecide } from './decide';
 
+export type ConnStatus = 'open' | 'reconnecting';
+
 export interface Conn {
   send(msg: ClientMsg): void;
   close(): void;
   onMessage: (msg: ServerMsg) => void;
   onClose: (reason: string) => void;
+  /** 接続が切れて再接続を試みている / 再接続できた */
+  onStatus: (s: ConnStatus) => void;
   /** 接続先の表示名（ルームコードなど） */
   code: string;
   mode: 'local' | 'server' | 'p2p';
@@ -18,7 +22,7 @@ export interface Conn {
 abstract class BaseConn implements Conn {
   onMessage: (msg: ServerMsg) => void = () => {};
   onClose: (reason: string) => void = () => {};
-  protected queue: ServerMsg[] = [];
+  onStatus: (s: ConnStatus) => void = () => {};
   abstract code: string;
   abstract mode: Conn['mode'];
   abstract send(msg: ClientMsg): void;
@@ -81,19 +85,37 @@ export function createLocalGame(speed = 1): LocalConn {
 
 // ───────────── WebSocket サーバー ─────────────
 
+const ENV: Record<string, string | undefined> = (import.meta as any).env || {};
+
+/**
+ * 対戦サーバーの場所。
+ * 既定はこのページと同じ場所（npm start で配信している場合）。
+ * Vercel などの静的ホスティングから別の場所のサーバーを使うときは、ビルド時に
+ * VITE_SERVER_URL=https://xxxx.onrender.com のように指定する。
+ */
+export const SERVER_URL = (ENV.VITE_SERVER_URL || '').trim().replace(/\/+$/, '');
+
+function serverBase(): string {
+  if (SERVER_URL) return SERVER_URL + '/';
+  return window.location.pathname.replace(/[^/]*$/, '');
+}
+
 export function wsUrl(): string {
+  if (SERVER_URL) {
+    const u = new URL(SERVER_URL);
+    return `${u.protocol === 'https:' ? 'wss:' : 'ws:'}//${u.host}${u.pathname.replace(/\/+$/, '')}/ws`;
+  }
   const loc = window.location;
   const proto = loc.protocol === 'https:' ? 'wss:' : 'ws:';
-  const base = loc.pathname.replace(/[^/]*$/, '');
-  return `${proto}//${loc.host}${base}ws`;
+  return `${proto}//${loc.host}${serverBase()}ws`;
 }
 
 export async function serverAvailable(): Promise<boolean> {
   try {
-    const base = window.location.pathname.replace(/[^/]*$/, '');
     const ctl = new AbortController();
-    const t = setTimeout(() => ctl.abort(), 2500);
-    const r = await fetch(`${base}healthz`, { signal: ctl.signal, cache: 'no-store' });
+    // 無料プランのサーバーは起動に時間がかかることがあるので、外部サーバーは長めに待つ
+    const t = setTimeout(() => ctl.abort(), SERVER_URL ? 15000 : 2500);
+    const r = await fetch(`${serverBase()}healthz`, { signal: ctl.signal, cache: 'no-store' });
     clearTimeout(t);
     if (!r.ok) return false;
     const j = await r.json().catch(() => null);
@@ -103,26 +125,46 @@ export async function serverAvailable(): Promise<boolean> {
   }
 }
 
+/** 再接続の待ち時間（ms）。これを使い切ったらあきらめる */
+const RETRY_DELAYS = [800, 1500, 3000, 5000, 8000, 12000];
+
 export class WsConn extends BaseConn {
   mode: Conn['mode'] = 'server';
   code = '';
-  private ws: WebSocket;
+  private ws: WebSocket | null = null;
   private pending: ClientMsg[] = [];
   private open = false;
   private pingTimer: ReturnType<typeof setInterval> | null = null;
+  private userClosed = false;
+  private attempt = 0;
+  private everOpened = false;
 
   constructor(first: LobbyMsg) {
     super();
     if (first.t === 'join') this.code = first.code;
-    this.ws = new WebSocket(wsUrl());
-    this.ws.onopen = () => {
+    this.openSocket(first);
+  }
+
+  private openSocket(first: LobbyMsg) {
+    const ws = new WebSocket(wsUrl());
+    this.ws = ws;
+    ws.onopen = () => {
       this.open = true;
-      this.ws.send(JSON.stringify(first));
-      for (const m of this.pending) this.ws.send(JSON.stringify(m));
-      this.pending = [];
+      ws.send(JSON.stringify(first));
+      if (this.everOpened) {
+        // 再接続: 切断中にためた操作は古いので捨て、改めて名乗り直す
+        this.pending = [];
+        this.attempt = 0;
+        this.onStatus('open');
+      } else {
+        for (const m of this.pending) ws.send(JSON.stringify(m));
+        this.pending = [];
+      }
+      this.everOpened = true;
+      if (this.pingTimer) clearInterval(this.pingTimer);
       this.pingTimer = setInterval(() => this.send({ t: 'ping' }), 20_000);
     };
-    this.ws.onmessage = (e) => {
+    ws.onmessage = (e) => {
       let msg: any;
       try {
         msg = JSON.parse(String(e.data));
@@ -134,22 +176,34 @@ export class WsConn extends BaseConn {
         return;
       }
       if (msg.t === 'room') this.code = msg.room.code;
+      if (msg.t === 'closed') this.userClosed = true; // ルームがもうない
       this.deliver(msg);
     };
-    this.ws.onclose = () => {
+    ws.onclose = () => {
+      this.open = false;
       if (this.pingTimer) clearInterval(this.pingTimer);
-      this.onClose('サーバーとの接続が切れました');
+      if (this.userClosed) return;
+      if (this.everOpened && this.code && this.attempt < RETRY_DELAYS.length) {
+        this.onStatus('reconnecting');
+        const delay = RETRY_DELAYS[this.attempt++];
+        setTimeout(() => !this.userClosed && this.openSocket({ t: 'join', code: this.code }), delay);
+        return;
+      }
+      this.onClose(this.everOpened ? 'サーバーとの接続が切れました' : 'サーバーに接続できませんでした');
     };
-    this.ws.onerror = () => {};
+    ws.onerror = () => {};
   }
+
   send(msg: ClientMsg) {
-    if (!this.open) this.pending.push(msg);
-    else if (this.ws.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(msg));
+    if (!this.open || !this.ws) {
+      if (msg.t !== 'ping') this.pending.push(msg);
+    } else if (this.ws.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(msg));
   }
   close() {
+    this.userClosed = true;
     this.onClose = () => {};
     if (this.pingTimer) clearInterval(this.pingTimer);
-    this.ws.close();
+    this.ws?.close();
   }
 }
 
@@ -190,6 +244,23 @@ function initialPeerSettings(): PeerSettings {
   return s;
 }
 
+/**
+ * WebRTC の接続補助サーバー（STUN/TURN）。厳しいネットワーク（会社・学校・一部の携帯回線）では
+ * TURN サーバーが必要になることがある。VITE_ICE_SERVERS に JSON で指定する。
+ *   例: [{"urls":"stun:stun.l.google.com:19302"},{"urls":"turn:turn.example.com:3478","username":"u","credential":"p"}]
+ */
+function iceConfig(): { iceServers: RTCIceServer[] } | undefined {
+  const raw = ENV.VITE_ICE_SERVERS;
+  if (!raw) return undefined;
+  try {
+    const list = JSON.parse(raw);
+    return Array.isArray(list) && list.length ? { iceServers: list } : undefined;
+  } catch {
+    console.warn('VITE_ICE_SERVERS の形式が正しくありません');
+    return undefined;
+  }
+}
+
 let peerSettings: PeerSettings = initialPeerSettings();
 export function setPeerSettings(s: PeerSettings) {
   peerSettings = s;
@@ -198,6 +269,8 @@ export function setPeerSettings(s: PeerSettings) {
 async function makePeer(id?: string): Promise<PeerT> {
   const { Peer } = await import('peerjs');
   const opts: any = { debug: 1, ...peerSettings };
+  const ice = iceConfig();
+  if (ice) opts.config = ice;
   return new Promise((resolve, reject) => {
     const peer = id ? new Peer(id, opts) : new Peer(opts);
     const t = setTimeout(() => reject(new Error('P2Pサーバーに接続できませんでした')), 12_000);
@@ -273,6 +346,7 @@ export class PeerConn extends BaseConn {
   private peer: PeerT | null = null;
   private pending: ClientMsg[] = [];
   private closed = false;
+  private lastError = '';
 
   constructor(code: string) {
     super();
@@ -281,30 +355,81 @@ export class PeerConn extends BaseConn {
 
   async connect(): Promise<void> {
     this.peer = await makePeer();
-    await new Promise<void>((resolve, reject) => {
-      const dc = this.peer!.connect(PEER_PREFIX + this.code, { reliable: true, serialization: 'json' });
-      const t = setTimeout(() => reject(new Error('ルームが見つかりません（ホストに接続できませんでした）')), 15_000);
-      this.peer!.on('error', (err: any) => {
+    this.peer.on('error', (err: any) => {
+      this.lastError = err?.type === 'peer-unavailable' ? 'ルームが見つかりません（ホストがいません）' : `P2Pエラー: ${err?.type || err}`;
+    });
+    this.peer.on('disconnected', () => {
+      // シグナリングサーバーとの接続だけが切れた場合は張り直す（対戦中のデータ通信は続く）
+      if (!this.closed) {
+        try {
+          this.peer?.reconnect();
+        } catch {
+          /* ignore */
+        }
+      }
+    });
+    await this.openChannel(15_000);
+  }
+
+  /** ホストとのデータ通信路を開く */
+  private openChannel(timeout: number): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      const peer = this.peer!;
+      this.lastError = '';
+      const dc = peer.connect(PEER_PREFIX + this.code, { reliable: true, serialization: 'json' });
+      let settled = false;
+      const fail = (msg: string) => {
+        if (settled) return;
+        settled = true;
+        clearInterval(watch);
         clearTimeout(t);
-        reject(new Error(err?.type === 'peer-unavailable' ? 'ルームが見つかりません' : `P2Pエラー: ${err?.type || err}`));
-      });
+        reject(new Error(msg));
+      };
+      const t = setTimeout(() => fail(this.lastError || 'ホストに接続できませんでした'), timeout);
+      const watch = setInterval(() => this.lastError && fail(this.lastError), 200);
       dc.on('open', () => {
+        if (settled) return;
+        settled = true;
         clearTimeout(t);
+        clearInterval(watch);
         this.dc = dc;
         for (const m of this.pending) dc.send(m);
         this.pending = [];
         resolve();
       });
-      dc.on('data', (data: any) => this.deliver(typeof data === 'string' ? JSON.parse(data) : data));
+      dc.on('data', (data: any) => {
+        if (this.dc === dc) this.deliver(typeof data === 'string' ? JSON.parse(data) : data);
+      });
       dc.on('close', () => {
-        if (!this.closed) this.onClose('ホストとの接続が切れました');
+        if (this.dc === dc && !this.closed) {
+          this.dc = null;
+          this.reconnect();
+        }
       });
     });
   }
 
+  private async reconnect() {
+    this.onStatus('reconnecting');
+    for (const delay of RETRY_DELAYS) {
+      await new Promise((r) => setTimeout(r, delay));
+      if (this.closed) return;
+      try {
+        if (this.peer?.disconnected) this.peer.reconnect();
+        this.pending = [];
+        await this.openChannel(8000);
+        this.onStatus('open');
+        return;
+      } catch {
+        /* 次の試行へ */
+      }
+    }
+    if (!this.closed) this.onClose('ホストとの接続が切れました（ホストがページを閉じた可能性があります）');
+  }
+
   send(msg: ClientMsg) {
     if (this.dc?.open) this.dc.send(msg);
-    else this.pending.push(msg);
+    else if (msg.t !== 'ping') this.pending.push(msg);
   }
   close() {
     this.closed = true;

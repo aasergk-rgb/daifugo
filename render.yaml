@@ -1,0 +1,13 @@
+# Render（https://render.com）に対戦サーバーを置くための設定（Blueprint）
+# Vercel の静的サイトから使う場合は、Vercel 側の環境変数 VITE_SERVER_URL にこのサーバーの URL を入れる
+services:
+  - type: web
+    name: daifugo-server
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: "22"

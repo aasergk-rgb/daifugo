@@ -39,7 +39,8 @@ const sockets = new Map<string, WebSocket>();
 const server = createServer(async (req, res) => {
   const url = new URL(req.url || '/', 'http://x');
   if (url.pathname.endsWith('/healthz')) {
-    res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+    // 静的サイト（Vercel など）から別ドメインのこのサーバーを確認できるようにする
+    res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store', 'access-control-allow-origin': '*' });
     res.end(JSON.stringify({ daifugo: true, rooms: rooms.size }));
     return;
   }

@@ -3,7 +3,7 @@
 実在するルールのほぼすべてを自由に組み合わせて遊べる、ブラウザで動く大富豪（大貧民）です。
 
 - **CPU対戦**（3〜6人／CPUの強さ4段階）
-- **オンライン対戦**（WebSocketサーバー または P2P。サーバーがなくても遊べます）
+- **オンライン対戦**（WebSocketサーバー または P2P。Vercel などサーバーなしの公開でも遊べます／自動再接続）
 - **ルールを自由に設定**：基本ルール／日本大富豪連盟 公式ルール／定番ローカル／全部盛り のプリセットに加え、40以上の項目を個別に変更・カスタムルールとして保存
 - **和モダンの凝ったデザイン**：SVGで描いたオリジナルのトランプ、革命・八切りなどの全画面演出、琴と太鼓の合成サウンド、4種のテーマ（漆黒金箔・翠緑カジノ・夜桜・ネオン東京）と4種のカード裏面（麻の葉・青海波・亀甲・七宝）
 
@@ -28,15 +28,61 @@ Docker：`docker build -t daifugo . && docker run -p 8787:8787 daifugo`
 
 | 方式 | 使いどころ | 説明 |
 | --- | --- | --- |
-| サーバー | `npm start` や Docker で公開したとき | サーバーがゲームを進行（不正できない）。切断しても同じ席に再接続でき、その間はCPUが代打ちします |
-| P2P | GitHub Pages などの静的ホスティング | ルームを作った人のブラウザがホストになり、WebRTC（PeerJS）で直接つながります。ホストはページを閉じないでください |
+| サーバー | `npm start` / Docker / Render などで対戦サーバーを動かしたとき | サーバーがゲームを進行（不正できない）。ホストが抜けても対戦が続きます |
+| P2P | Vercel・GitHub Pages などの静的ホスティング（サーバーなし） | ルームを作った人のブラウザがホストになり、WebRTC（PeerJS）で直接つながります。ホストはページを閉じないでください |
 
-「接続方式：自動」では、対戦サーバーが見つかればサーバー、なければP2Pを使います。
-ルームを作ったら、表示されるコードか招待リンクを友だちに送ってください。空いた席はCPUが埋めます。観戦・チャット・スタンプ・持ち時間にも対応しています。
+- 「接続方式：自動」では、対戦サーバーが見つかればサーバー、なければP2Pを使います。
+- ルームを作ったら、表示されるコードか招待リンクを友だちに送ってください。空いた席はCPUが埋めます。観戦・チャット・スタンプ・持ち時間にも対応しています。
+- **通信が切れても自動で再接続**し、同じ席に戻ります（サーバー・P2Pとも）。切れている間はCPUが代わりに打ちます。
 
-P2Pのシグナリングには既定でPeerJSの公開サーバーを使います。自前の [PeerServer](https://github.com/peers/peerjs-server) を使う場合は、ビルド時に `VITE_PEER_HOST` / `VITE_PEER_PORT` / `VITE_PEER_PATH` / `VITE_PEER_SECURE` を指定するか、URLに `?peerHost=…&peerPort=…` を付けてください。
+## Vercel にデプロイする
+
+Vercel は静的サイトとして公開します（`vercel.json` 設定済み）。Vercel では常時接続のサーバーを動かせないため、オンライン対戦は次のどちらかになります。
+
+- **A. そのまま公開（P2P）**：追加の設定なし。ルームを作った人のブラウザが進行役になります。
+- **B. 対戦サーバーを別に置く（おすすめ）**：Render などに対戦サーバーを置き、Vercel の環境変数 `VITE_SERVER_URL` にその URL を入れます。ホストがページを閉じても対戦が続きます。
+
+### 手順（GitHub から）
+
+1. このリポジトリを GitHub に push する（公開したいブランチを `main` にマージ）
+2. [vercel.com](https://vercel.com) にログイン →「Add New…」→「Project」→ このリポジトリを「Import」
+3. 設定は `vercel.json` が読み込まれるので、そのまま「Deploy」
+   （Framework: Vite / Build Command: `npm run build:client` / Output Directory: `dist`）
+4. 数十秒で `https://<プロジェクト名>.vercel.app` が発行されます。以後は `main` に push するたびに自動で更新されます
+
+### 手順（コマンドラインから）
+
+```bash
+npm i -g vercel
+vercel          # 初回はログインとプロジェクト作成を聞かれる（プレビュー環境に公開）
+vercel --prod   # 本番に公開
+```
+
+### B. 対戦サーバーを Render に置く場合
+
+1. [render.com](https://render.com) にログイン →「New」→「Blueprint」→ このリポジトリを選ぶ（`render.yaml` で無料プランの Web Service が作られます）
+2. 発行された URL（例 `https://daifugo-server.onrender.com`）を開き、`/healthz` が `{"daifugo":true,...}` を返すことを確認
+3. Vercel の Project Settings →「Environment Variables」に `VITE_SERVER_URL` = その URL を追加し、「Redeploy」
+
+Render の無料プランは使われないと眠るため、最初の接続に30秒〜1分ほどかかることがあります。サーバーに届かないときは自動でP2Pに切り替わります。
+
+### その他の設定（環境変数・すべて任意）
+
+`.env.example` に一覧があります。
+
+| 変数 | 用途 |
+| --- | --- |
+| `VITE_SERVER_URL` | 対戦サーバーの URL（上の B） |
+| `VITE_ICE_SERVERS` | P2P がつながりにくいネットワーク向けの STUN/TURN サーバー（JSON） |
+| `VITE_PEER_HOST` ほか | 自前の [PeerServer](https://github.com/peers/peerjs-server) を使う場合 |
 
 GitHub Pages で公開するには、Settings → Pages → Source を「GitHub Actions」にして `main` に push します（`.github/workflows/pages.yml`）。
+
+## 動作が重いとき（軽量モード）
+
+設定 →「グラフィック」で **自動 / 高画質 / 軽量** を選べます（対戦中は「⋯」メニューからも切り替え可能）。
+「自動」では、端末の性能と実際のフレームレートを見て、重いと判断したら軽量モードに切り替えます。
+軽量モードでは、ぼかし・影・背景の粒・常に動く装飾を止め、カードの動きを短くします。
 
 ## 対応ルール
 
