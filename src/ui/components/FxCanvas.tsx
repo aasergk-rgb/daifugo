@@ -186,6 +186,10 @@ export function FxCanvas({ theme, ambient = true }: { theme: ThemeId; ambient?: 
       const step = last ? Math.min(3, (now - last) / 16.67) : 1;
       last = now;
 
+      // 背景の粒が不要になったら（対戦画面など）すぐ消す
+      if (!ambientOn()) {
+        for (let i = particles.length - 1; i >= 0; i--) if (particles[i].ambient) particles.splice(i, 1);
+      }
       const amb = AMBIENT[themeRef.current];
       if (ambientOn() && Math.random() < amb.rate * step) {
         const petal = amb.shape === 'petal';

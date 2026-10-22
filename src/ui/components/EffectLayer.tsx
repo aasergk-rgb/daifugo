@@ -38,7 +38,7 @@ function Deco({ kind, color }: { kind: string; color: string }) {
       'fx-burst',
       <svg viewBox="-100 -100 200 200">
         {Array.from({ length: 16 }, (_, i) => (
-          <path key={i} transform={`rotate(${i * 22.5})`} d="M0 0 L-9 -100 L9 -100 Z" fill={color} opacity="0.22" />
+          <path key={i} transform={`rotate(${i * 22.5})`} d="M0 0 L-9 -100 L9 -100 Z" fill="#fff" opacity="0.45" />
         ))}
       </svg>,
       { initial: { scale: 0.4, rotate: -20, opacity: 0 }, animate: { scale: 1, rotate: 10, opacity: 1 }, transition: { duration: 1.2, ease: 'easeOut' } },

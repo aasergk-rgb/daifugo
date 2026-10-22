@@ -2004,10 +2004,11 @@ input:focus {
 .fx-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(43, 42, 85, 0.28);
+  background: rgba(43, 42, 85, 0.16);
 }
+/* 大きな演出は、その色をうすく敷いて明るく見せる */
 .fx.is-big .fx-backdrop {
-  background: rgba(43, 42, 85, 0.42);
+  background: color-mix(in srgb, var(--fx) 28%, rgba(255, 255, 255, 0.35));
 }
 .fx-title {
   position: relative;
@@ -2569,14 +2570,25 @@ input:focus {
     font-size: 0.7rem;
     padding: 2px 8px;
   }
+  .action-bar {
+    gap: 6px;
+  }
+  .ab-left,
+  .ab-right {
+    gap: 6px;
+  }
   .btn.play {
-    min-width: 96px;
+    min-width: 80px;
+    padding: 0.5em 1em;
+    font-size: 1rem;
   }
   .btn.pass {
-    min-width: 70px;
+    min-width: 62px;
+    padding: 0.5em 0.9em;
   }
   .ab-left .btn {
-    padding: 0.32em 0.6em;
+    padding: 0.3em 0.55em;
+    font-size: 0.78rem;
   }
   .status-line {
     width: 100%;
