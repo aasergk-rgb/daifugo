@@ -1145,6 +1145,7 @@ input:focus {
   min-height: 0;
 }
 .re-nav {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -1170,21 +1171,22 @@ input:focus {
 }
 .re-sections {
   overflow: auto;
-  padding: 12px 22px 80px;
-  scroll-behavior: smooth;
+  padding: 0 22px 80px;
 }
+/* スクロール領域の上端にぴったり付く、いまのルール表示 */
 .re-current {
   position: sticky;
   top: 0;
-  z-index: 2;
+  z-index: 5;
   background: var(--bg);
-  padding: 6px 0 14px;
+  margin: 0 -22px 14px;
+  padding: 14px 22px 12px;
+  border-bottom: 2.5px solid var(--hair);
   display: grid;
   gap: 6px;
 }
 .re-section {
   margin-bottom: 24px;
-  scroll-margin-top: 96px;
 }
 .re-section h3 {
   font-weight: 900;
@@ -1273,7 +1275,11 @@ input:focus {
     align-items: flex-start;
   }
   .re-sections {
-    padding: 8px 14px 80px;
+    padding: 0 14px 80px;
+  }
+  .re-current {
+    margin: 0 -14px 10px;
+    padding: 10px 14px;
   }
   .preset-card {
     width: 200px;

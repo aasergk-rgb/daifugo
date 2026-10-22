@@ -1,7 +1,7 @@
 // ルール設定画面（プリセット + 全ルールを自由に変更 + カスタム保存）
 
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { rankLabel } from '../../engine/cards';
 import { EFFECT_INFO, EFFECT_KEYS, EffectKey, effectDisplayName, PRESETS, RuleConfig, cloneConfig, matchPreset, normalizeConfig, ruleBadges } from '../../engine/rules';
@@ -176,9 +176,62 @@ export function RuleEditor({ value, onChange, onClose, title = 'ルール設定'
     onClose();
   };
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const stickyRef = useRef<HTMLDivElement>(null);
+  const anim = useRef(0);
+
+  // 見出しが固定バーのすぐ下に来るスクロール位置
+  const sectionTop = (box: HTMLElement, id: string) => {
+    const el = document.getElementById(`rs-${id}`);
+    if (!el) return 0;
+    const offset = (stickyRef.current?.offsetHeight ?? 0) + 10;
+    return el.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop - offset;
+  };
+
+  // スクロール位置から今見ている項目を選ぶ
+  useEffect(() => {
+    const box = scrollRef.current;
+    if (!box) return;
+    const onScroll = () => {
+      if (anim.current) return;
+      let cur = SECTIONS[0].id;
+      for (const s of SECTIONS) if (sectionTop(box, s.id) <= box.scrollTop + 40) cur = s.id;
+      if (box.scrollTop + box.clientHeight >= box.scrollHeight - 2) cur = SECTIONS[SECTIONS.length - 1].id;
+      setSection(cur);
+    };
+    box.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      box.removeEventListener('scroll', onScroll);
+      cancelAnimationFrame(anim.current);
+    };
+  }, []);
+
+  // 横並びのメニュー（スマホ）では選択中の項目が見えるように寄せる
+  const navRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const nav = navRef.current;
+    const btn = nav?.querySelector<HTMLElement>('button.on');
+    if (!nav || !btn || nav.scrollWidth <= nav.clientWidth) return;
+    nav.scrollTo({ left: btn.offsetLeft - (nav.clientWidth - btn.offsetWidth) / 2, behavior: 'smooth' });
+  }, [section]);
+
+  // OS のアニメーション設定に左右されないよう自前でなめらかにスクロールする
   const scrollTo = (id: string) => {
+    const box = scrollRef.current;
+    if (!box) return;
     setSection(id);
-    document.getElementById(`rs-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    cancelAnimationFrame(anim.current);
+    const from = box.scrollTop;
+    const to = Math.max(0, Math.min(sectionTop(box, id), box.scrollHeight - box.clientHeight));
+    const dur = Math.min(650, 250 + Math.abs(to - from) * 0.25);
+    const t0 = performance.now();
+    const step = (now: number) => {
+      const t = Math.min(1, (now - t0) / dur);
+      const e = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      box.scrollTop = from + (to - from) * e;
+      anim.current = t < 1 ? requestAnimationFrame(step) : 0;
+    };
+    anim.current = requestAnimationFrame(step);
   };
 
   // 親要素の backdrop-filter に閉じ込められないよう body 直下に描画する
@@ -221,7 +274,7 @@ export function RuleEditor({ value, onChange, onClose, title = 'ルール設定'
       </div>
 
       <div className="re-body">
-        <nav className="re-nav">
+        <nav className="re-nav" ref={navRef}>
           {SECTIONS.map((s) => (
             <button key={s.id} className={section === s.id ? 'on' : ''} onClick={() => scrollTo(s.id)}>
               <Icon name={s.icon} size={18} />
@@ -229,8 +282,8 @@ export function RuleEditor({ value, onChange, onClose, title = 'ルール設定'
             </button>
           ))}
         </nav>
-        <div className="re-sections">
-          <div className="re-current">
+        <div className="re-sections" ref={scrollRef}>
+          <div className="re-current" ref={stickyRef}>
             <b>{preset ? PRESETS.find((p) => p.id === preset)!.name : custom ? custom.name : 'カスタム'}</b>
             <div className="badges">
               {ruleBadges(cfg).map((b) => (
