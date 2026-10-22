@@ -167,12 +167,8 @@ function Joker({ card }: { card: Card }) {
       <text x="100" y="236" textAnchor="middle" className="cf" fontSize="30" fill={accent} letterSpacing="2">
         JOKER
       </text>
-      <text x="34" y="52" textAnchor="middle" className="cf" fontSize="26" fill={accent}>
-        ★
-      </text>
-      <text x="166" y="248" textAnchor="middle" className="cf" fontSize="26" fill={accent} transform="rotate(180 166 239)">
-        ★
-      </text>
+      <path transform="translate(34 42)" d="M0 -12 L3.5 -4 L12 -3.5 L5.5 2 L7.5 10.5 L0 6 L-7.5 10.5 L-5.5 2 L-12 -3.5 L-3.5 -4 Z" fill={accent} />
+      <path transform="translate(166 238) rotate(180)" d="M0 -12 L3.5 -4 L12 -3.5 L5.5 2 L7.5 10.5 L0 6 L-7.5 10.5 L-5.5 2 L-12 -3.5 L-3.5 -4 Z" fill={accent} />
     </g>
   );
 }

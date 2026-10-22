@@ -6,7 +6,9 @@ import { DIFFICULTY_LABEL, Difficulty } from '../engine/ai';
 import { Card, SUITS, cardFromId, fullDeck } from '../engine/cards';
 import { PRESETS, matchPreset, normalizeConfig, ruleBadges } from '../engine/rules';
 import { Conn, PeerConn, WsConn, createLocalGame, hostP2P, serverAvailable } from '../net/connection';
-import { AVATARS, CPU_NAMES } from '../net/protocol';
+import { AVATAR_COUNT, CPU_NAMES } from '../net/protocol';
+import { Avatar } from './components/Avatar';
+import { Icon } from './components/Icon';
 import type { Screen } from './App';
 import { GameClient, Tone } from './client';
 import { EffectLayer } from './components/EffectLayer';
@@ -40,10 +42,10 @@ export function Title({ go }: { go: (s: Screen) => void }) {
   const settings = useSettings();
   const preset = matchPreset(settings.rules);
   const items: { s: Screen; label: string; sub: string; icon: string }[] = [
-    { s: 'cpu', label: 'CPU対戦', sub: 'コンピューターと遊ぶ', icon: '🃏' },
-    { s: 'online', label: 'オンライン対戦', sub: OFFLINE_ONLY ? 'ダウンロード版で遊べます' : '友だちと遊ぶ', icon: '🌐' },
-    { s: 'howto', label: '遊び方・ルール', sub: 'はじめての人へ', icon: '📖' },
-    { s: 'settings', label: '設定', sub: '名前・テーマ・音', icon: '⚙️' },
+    { s: 'cpu', label: 'CPU対戦', sub: 'コンピューターと遊ぶ', icon: 'cards' },
+    { s: 'online', label: 'オンライン対戦', sub: OFFLINE_ONLY ? 'ダウンロード版で遊べます' : '友だちと遊ぶ', icon: 'globe' },
+    { s: 'howto', label: '遊び方・ルール', sub: 'はじめての人へ', icon: 'book' },
+    { s: 'settings', label: '設定', sub: '名前・テーマ・音', icon: 'sliders' },
   ];
   return (
     <div className="screen title-screen">
@@ -86,7 +88,9 @@ export function Title({ go }: { go: (s: Screen) => void }) {
                 go(it.s);
               }}
             >
-              <span className="mb-icon">{it.icon}</span>
+              <span className="mb-icon">
+                <Icon name={it.icon} size={24} />
+              </span>
               <span className="mb-text">
                 <b>{it.label}</b>
                 <small>{it.sub}</small>
@@ -126,7 +130,7 @@ function RulePicker() {
         ))}
         <button className="preset-chip edit" onClick={() => setEditing(true)}>
           <small>EDIT</small>
-          ✎ 詳しく設定
+          詳しく設定
         </button>
       </div>
       <div className="badges">
@@ -185,13 +189,13 @@ export function CpuSetup({ onBack, onStart }: { onBack: () => void; onStart: (c:
           </div>
           <ul className="cpu-list">
             <li className="is-me">
-              <span className="avatar-emoji">{AVATARS[settings.avatar]}</span>
+              <Avatar id={settings.avatar} />
               <span className="sl-name">{playerName(settings)}</span>
               <em className="me-badge">YOU</em>
             </li>
             {Array.from({ length: settings.cpuCount }, (_, i) => (
               <li key={i}>
-                <span className="avatar-emoji">{AVATARS[(i + 1) % 12]}</span>
+                <Avatar id={(i + 1) % AVATAR_COUNT} />
                 <span className="sl-name">{CPU_NAMES[i]}</span>
                 <div className="seg sm">
                   {DIFFS.map((d) => (
@@ -338,7 +342,7 @@ export function OnlineScreen({ onBack, onStart }: { onBack: () => void; onStart:
             ))}
           </div>
           <p className="muted small">
-            {server === null ? 'サーバーを確認中…' : server ? '✅ 対戦サーバーが利用できます' : 'ℹ 対戦サーバーが見つからないため、P2P（ブラウザ同士の直接接続）を使います'}
+            {server === null ? 'サーバーを確認中…' : server ? '対戦サーバーが利用できます' : '対戦サーバーが見つからないため、P2P（ブラウザ同士の直接接続）を使います'}
             <br />
             現在：<b>{mode === 'server' ? 'サーバー接続' : 'P2P接続'}</b>
           </p>
@@ -393,9 +397,9 @@ function ProfileEditor() {
     <div className="profile">
       <input className="name-input" value={settings.name} onChange={(e) => updateSettings({ name: e.target.value.slice(0, 12) })} placeholder="名前（12文字まで）" />
       <div className="avatar-grid">
-        {AVATARS.map((a, i) => (
+        {Array.from({ length: AVATAR_COUNT }, (_, i) => (
           <button key={i} className={settings.avatar === i ? 'on' : ''} onClick={() => updateSettings({ avatar: i })}>
-            {a}
+            <Avatar id={i} className="avatar-pick" />
           </button>
         ))}
       </div>
@@ -596,7 +600,7 @@ export function HowTo({ onBack }: { onBack: () => void }) {
         </section>
         <section className="panel">
           <h3>操作</h3>
-          <p>カードをタップで選び「出す」。光っているカードが今出せるカードです。💡ヒントでおすすめの手を選択できます。キーボードでは Enter で出す、Space でパス、H でヒント。</p>
+          <p>カードをタップで選び「出す」。光っているカードが今出せるカードです。「ヒント」でおすすめの手を選択できます。キーボードでは Enter で出す、Space でパス、H でヒント。</p>
         </section>
       </div>
     </div>

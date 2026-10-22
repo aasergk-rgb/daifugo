@@ -4,7 +4,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useState } from 'react';
 import { DIFFICULTY_LABEL, Difficulty } from '../../engine/ai';
 import { PRESETS, matchPreset, ruleBadges } from '../../engine/rules';
-import { AVATARS } from '../../net/protocol';
+import { Avatar } from './Avatar';
+import { Icon } from './Icon';
 import { GameClient, useClient } from '../client';
 import { Chat } from './Table';
 import { RuleEditor } from './RuleEditor';
@@ -69,7 +70,8 @@ export function Lobby({ client, onExit }: { client: GameClient; onExit: () => vo
             ))}
           </div>
           <button className="btn" onClick={copy}>
-            {copied ? 'コピーしました！' : '🔗 招待リンクをコピー'}
+            <Icon name={copied ? 'check' : 'link'} size={18} />
+            {copied ? 'コピーしました！' : '招待リンクをコピー'}
           </button>
           <p className="muted">友だちにコードかリンクを送ってください。{client.conn.mode === 'p2p' && 'P2P接続中はこのページを閉じないでください（あなたがホストです）。'}</p>
         </div>
@@ -93,7 +95,7 @@ export function Lobby({ client, onExit }: { client: GameClient; onExit: () => vo
             <AnimatePresence>
               {room.seats.map((s) => (
                 <motion.li key={s.id} className={`${s.kind} ${s.id === snap.seatId ? 'is-me' : ''}`} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
-                  <span className="avatar-emoji">{AVATARS[s.avatar] ?? '🙂'}</span>
+                  <Avatar id={s.avatar} />
                   <span className="sl-name">
                     {s.name}
                     {s.isHost && <em className="host-badge">HOST</em>}
@@ -124,7 +126,7 @@ export function Lobby({ client, onExit }: { client: GameClient; onExit: () => vo
             </AnimatePresence>
             {Array.from({ length: room.maxSeats - room.seats.length }, (_, i) => (
               <li key={`empty${i}`} className="empty">
-                <span className="avatar-emoji">？</span>
+                <span className="avatar-emoji empty-avatar">?</span>
                 <span className="sl-name muted">参加待ち…（開始時はCPUが入ります）</span>
                 {isHost && (
                   <button className="btn sm ghost" onClick={() => client.send({ t: 'addCpu', difficulty: 'normal' })}>

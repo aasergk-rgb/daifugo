@@ -57,11 +57,12 @@ export type LobbyMsg =
   | { t: 'create' }
   | { t: 'join'; code: string };
 
-export const STAMPS = ['👍', '😂', '😱', '🔥', '🙏', '😎', '💢', '🎉', 'ナイス！', 'うそでしょ', 'まだまだ', 'おつかれ'];
+export const STAMPS = ['よろしく！', 'ナイス！', 'すごい！', 'やったー', 'うそでしょ', 'くやしい…', 'まだまだ', 'ドンマイ', 'ありがとう', 'おつかれ', 'あぶない…', 'どうしよう'];
 
-export const AVATARS = ['🐶', '🐱', '🐰', '🐻', '🐼', '🐨', '🐸', '🐷', '🐵', '🐧', '🦊', '🦄'];
+/** アバターの種類の数（絵は ui/components/Avatar.tsx） */
+export const AVATAR_COUNT = 12;
 
-/** CPU の名前。i 番目の CPU は AVATARS[(i + 1) % 12] の動物 */
+/** CPU の名前。i 番目の CPU は (i + 1) 番目のアバター（ねこ・うさぎ・くま…）の動物 */
 export const CPU_NAMES = ['ミケ', 'ウサコ', 'クマキチ', 'パンタ', 'コアラン', 'ケロ', 'ブーブ', 'モンキチ', 'ペンペン', 'コンタ'];
 
 export function genCode(len = 5): string {

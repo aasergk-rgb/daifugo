@@ -8,6 +8,7 @@ import { EFFECT_INFO, EFFECT_KEYS, EffectKey, effectDisplayName, PRESETS, RuleCo
 import { genId } from '../../net/protocol';
 import { updateSettings, useSettings } from '../settings';
 import { sfx } from '../sound';
+import { Icon } from './Icon';
 
 type K = keyof RuleConfig;
 
@@ -28,7 +29,7 @@ const SECTIONS: Section[] = [
   {
     id: 'deck',
     title: 'デッキ',
-    icon: '🂠',
+    icon: 'layers',
     fields: [
       { k: 'jokers', type: 'select', label: 'ジョーカー', desc: '最強のカード兼ワイルドカード。どのカードの代わりにもなる。', options: [[0, 'なし'], [1, '1枚'], [2, '2枚']] },
       { k: 'blindCards', type: 'number', label: 'ブラインドカード', desc: 'ランダムに抜いて使わないカードの枚数（連盟公式は4人で2枚）。', min: 0, max: 8, suffix: '枚' },
@@ -37,7 +38,7 @@ const SECTIONS: Section[] = [
   {
     id: 'play',
     title: '出し方',
-    icon: '🃏',
+    icon: 'cards',
     fields: [
       { k: 'sequence', type: 'toggle', label: '階段（シークエンス）', desc: '同じマークの連続した数字を3枚以上まとめて出せる。' },
       { k: 'seqMinLength', type: 'select', label: '階段の最小枚数', desc: '階段として認める最小の枚数。', options: [[3, '3枚'], [4, '4枚'], [5, '5枚']], dep: 'sequence' },
@@ -64,7 +65,7 @@ const SECTIONS: Section[] = [
   {
     id: 'rev',
     title: '革命',
-    icon: '🔥',
+    icon: 'rotate',
     fields: [
       { k: 'revolution', type: 'toggle', label: '革命', desc: '同じ数字を4枚以上出すとカードの強さが逆転する（ジョーカーは最強のまま）。もう一度起きると革命返し。' },
       { k: 'revolutionCount', type: 'number', label: '革命に必要な枚数', desc: '連盟の3人制では3枚。', min: 3, max: 6, suffix: '枚', dep: 'revolution' },
@@ -75,17 +76,17 @@ const SECTIONS: Section[] = [
   {
     id: 'lock',
     title: '縛り',
-    icon: '🔒',
+    icon: 'lock',
     fields: [
       { k: 'suitLock', type: 'toggle', label: 'マーク縛り（スート縛り）', desc: '同じマークが2回続くと、場が流れるまでそのマークしか出せない。' },
       { k: 'numberLock', type: 'toggle', label: '数字縛り（階段縛り）', desc: '数字が1つずつ続くと、場が流れるまで次の数字しか出せない。マーク縛りと同時なら激縛り。' },
     ],
   },
-  { id: 'effects', title: '効果札', icon: '✨', effects: true },
+  { id: 'effects', title: '効果札', icon: 'star', effects: true },
   {
     id: 'special',
     title: '特殊な出し',
-    icon: '⚡',
+    icon: 'zap',
     fields: [
       { k: 'spade3Return', type: 'toggle', label: 'スペ3返し', desc: 'ジョーカー1枚出しに♠3を出せて、場が流れる。' },
       { k: 'sandstorm', type: 'toggle', label: '砂嵐', desc: '3のスリーカードはどんなスリーカードにも勝ち、場が流れる。' },
@@ -99,7 +100,7 @@ const SECTIONS: Section[] = [
   {
     id: 'finish',
     title: '上がり・身分',
-    icon: '👑',
+    icon: 'crown',
     fields: [
       { k: 'forbiddenFinish', type: 'toggle', label: '反則上がり（禁止上がり）', desc: '最後の1手に特定のカードを含むと反則で最下位になる。' },
       { k: 'forbidJoker', type: 'toggle', label: '　└ ジョーカー', desc: 'ジョーカーを含む上がりは反則。', dep: 'forbiddenFinish' },
@@ -114,7 +115,7 @@ const SECTIONS: Section[] = [
   {
     id: 'exchange',
     title: 'カード交換',
-    icon: '🔄',
+    icon: 'swap',
     fields: [
       { k: 'exchange', type: 'toggle', label: 'カード交換', desc: '2戦目以降、下位は最も強いカードを、上位は好きなカードを渡す。' },
       { k: 'exchangeTop', type: 'number', label: '大富豪 ⇔ 大貧民', desc: '交換する枚数。', min: 0, max: 4, suffix: '枚', dep: 'exchange' },
@@ -124,7 +125,7 @@ const SECTIONS: Section[] = [
   {
     id: 'match',
     title: '試合形式',
-    icon: '🏆',
+    icon: 'trophy',
     fields: [
       { k: 'games', type: 'number', label: 'ゲーム数', desc: '1試合で遊ぶゲームの数。', min: 1, max: 30, suffix: '戦' },
       { k: 'setLength', type: 'number', label: 'セットの長さ', desc: 'このゲーム数ごとに身分をリセット（0 = リセットしない）。連盟公式は4。', min: 0, max: 12, suffix: '戦' },
@@ -223,7 +224,7 @@ export function RuleEditor({ value, onChange, onClose, title = 'ルール設定'
         <nav className="re-nav">
           {SECTIONS.map((s) => (
             <button key={s.id} className={section === s.id ? 'on' : ''} onClick={() => scrollTo(s.id)}>
-              <span>{s.icon}</span>
+              <Icon name={s.icon} size={18} />
               {s.title}
             </button>
           ))}
@@ -242,7 +243,7 @@ export function RuleEditor({ value, onChange, onClose, title = 'ルール設定'
           {SECTIONS.map((s) => (
             <section key={s.id} id={`rs-${s.id}`} className="re-section">
               <h3>
-                <span>{s.icon}</span>
+                <Icon name={s.icon} size={18} />
                 {s.title}
               </h3>
               {s.fields?.map((f) => {
@@ -345,7 +346,7 @@ export function RuleEditor({ value, onChange, onClose, title = 'ルール設定'
           {!readOnly && (
             <section className="re-section re-save">
               <h3>
-                <span>💾</span>カスタムルールとして保存
+                <Icon name="pencil" size={18} />カスタムルールとして保存
               </h3>
               <form
                 onSubmit={(e) => {

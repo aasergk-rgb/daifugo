@@ -2,7 +2,9 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { DIFFICULTY_LABEL } from '../../engine/ai';
 import { rankTitles } from '../../engine/rules';
 import type { GameView } from '../../engine/view';
-import { AVATARS, STAMPS, SeatInfo } from '../../net/protocol';
+import { STAMPS, SeatInfo } from '../../net/protocol';
+import { Avatar } from './Avatar';
+import { Crown } from './Icon';
 import type { SeatFx } from '../client';
 
 export interface SeatPos {
@@ -89,8 +91,8 @@ export function Seat({ p, view, seat, pos, active, fx, deadline, now, turnSecond
             <circle cx="20" cy="20" r="18" pathLength="1" strokeDasharray={`${ratio} 1`} />
           </svg>
         )}
-        <span className="avatar-emoji">{AVATARS[seat?.avatar ?? p] ?? '🙂'}</span>
-        {seat && !seat.connected && <span className="seat-offline" title="切断中（CPUが代行）">⚡</span>}
+        <Avatar id={seat?.avatar ?? p} />
+        {seat && !seat.connected && <span className="seat-offline" title="切断中（CPUが代行）">切断中</span>}
       </div>
       <div className="seat-plate">
         <div className="seat-name">
@@ -113,7 +115,7 @@ export function Seat({ p, view, seat, pos, active, fx, deadline, now, turnSecond
             animate={{ scale: 1, opacity: 1, rotate: -6 }}
             transition={{ type: 'spring', stiffness: 500, damping: 16 }}
           >
-            {stamp === '大富豪' && <span className="crown">👑</span>}
+            {stamp === '大富豪' && <Crown size={16} />}
             {stamp}
           </motion.div>
         )}
@@ -128,7 +130,7 @@ export function Seat({ p, view, seat, pos, active, fx, deadline, now, turnSecond
             exit={{ opacity: 0, y: -10 }}
             transition={{ type: 'spring', stiffness: 500, damping: 20 }}
           >
-            {fx.kind === 'stamp' ? STAMPS[Number(fx.text)] ?? '👍' : fx.text}
+            {fx.kind === 'stamp' ? STAMPS[Number(fx.text)] ?? '' : fx.text}
           </motion.div>
         )}
       </AnimatePresence>

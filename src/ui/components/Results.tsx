@@ -2,7 +2,9 @@ import { motion } from 'framer-motion';
 import { useEffect } from 'react';
 import { rankTitles } from '../../engine/rules';
 import type { GameView } from '../../engine/view';
-import { AVATARS, RoomInfo } from '../../net/protocol';
+import { RoomInfo } from '../../net/protocol';
+import { Avatar } from './Avatar';
+import { Crown } from './Icon';
 import type { GameClient } from '../client';
 import { confetti } from './FxCanvas';
 import { sfx } from '../sound';
@@ -48,7 +50,8 @@ export function Results({ client, view, room, onExit }: { client: GameClient; vi
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.3 + (2 - rank) * 0.25, type: 'spring' }}
                 >
-                  <span className="pod-avatar">{AVATARS[room?.seats[p]?.avatar ?? p]}</span>
+                  {rank === 0 && <Crown size={30} />}
+                  <Avatar id={room?.seats[p]?.avatar ?? p} className="pod-avatar" />
                   <span className="pod-name">{view.names[p]}</span>
                   <span className="pod-score">{view.scores[p]}pt</span>
                   <div className="pod-block">{rank + 1}</div>
@@ -80,7 +83,7 @@ export function Results({ client, view, room, onExit }: { client: GameClient; vi
                   )}
                 </td>
                 <td className="res-name">
-                  <span className="avatar-emoji sm">{AVATARS[room?.seats[p]?.avatar ?? p]}</span>
+                  <Avatar id={room?.seats[p]?.avatar ?? p} className="avatar-emoji sm" />
                   {view.names[p]}
                   {final && <small className="res-last">（最終戦 {titles[last.ranks[p]]}）</small>}
                 </td>

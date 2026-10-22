@@ -7,7 +7,9 @@ import { SUIT_SYMBOL, rankLabel, sortCards } from '../../engine/cards';
 import { isFoulFinish } from '../../engine/game';
 import { EFFECT_INFO, effectDisplayName, rankTitles, ruleBadges } from '../../engine/rules';
 import { isMyTurn, stateFromView, viewLegalPlays, viewRev, viewValidate } from '../../engine/view';
-import { AVATARS, STAMPS } from '../../net/protocol';
+import { STAMPS } from '../../net/protocol';
+import { Avatar } from './Avatar';
+import { Icon } from './Icon';
 import { GameClient, useClient } from '../client';
 import { useDelayed, useNow, useSize } from '../hooks';
 import { useLite } from '../perf';
@@ -181,7 +183,7 @@ export function Table({ client, onExit }: { client: GameClient; onExit: () => vo
     if (mode === 'bomber') return `捨てさせる数字を ${pending!.count} つ選んでください`;
     if (myTurn) {
       if (validation?.error) return validation.error;
-      if (validation?.combo) return foul ? '⚠ 反則上がりになります！' : '出せます';
+      if (validation?.combo) return foul ? '反則上がりになります！' : '出せます';
       if (!view.field.length) return 'あなたが親です。好きなカードを出してください';
       return legal.length ? 'カードを選んでください' : '出せるカードがありません（パス）';
     }
@@ -208,21 +210,21 @@ export function Table({ client, onExit }: { client: GameClient; onExit: () => vo
         </div>
         <div className="tb-right">
           <button className="icon-btn" title="ルール" onClick={() => setPanel(panel === 'rules' ? null : 'rules')}>
-            ⚖
+            <Icon name="book" />
           </button>
           <button className="icon-btn" title="ログ" onClick={() => setPanel(panel === 'log' ? null : 'log')}>
-            ☰
+            <Icon name="list" />
           </button>
           {client.conn.mode !== 'local' && (
             <button className="icon-btn" title="チャット" onClick={() => setPanel(panel === 'chat' ? null : 'chat')}>
-              💬
+              <Icon name="chat" />
             </button>
           )}
           <button className="icon-btn" title="サウンド" onClick={() => updateSettings({ muted: !settings.muted })}>
-            {settings.muted ? '🔇' : '🔊'}
+            <Icon name={settings.muted ? 'mute' : 'sound'} />
           </button>
           <button className="icon-btn" title="メニュー" onClick={() => setPanel(panel === 'menu' ? null : 'menu')}>
-            ⋯
+            <Icon name="dots" />
           </button>
         </div>
       </header>
@@ -246,12 +248,15 @@ export function Table({ client, onExit }: { client: GameClient; onExit: () => vo
             </span>
           </div>
           <div className="dir-chip" title="手番の回る向き">
-            <span className={`dir-icon ${view.direction === 1 ? 'cw' : 'ccw'}`}>↻</span>
+            <span className={`dir-icon ${view.direction === 1 ? 'cw' : 'ccw'}`}>
+              <Icon name="rotate" size={15} />
+            </span>
             {view.direction === 1 ? '時計回り' : '反時計回り'}
           </div>
           {(view.lockSuits || view.numberLock) && (
             <motion.div className="lock-chip" initial={{ scale: 0 }} animate={{ scale: 1 }}>
-              🔒 {view.lockSuits && view.numberLock ? '激縛り' : view.numberLock ? '数字縛り' : '縛り'}
+              <Icon name="lock" size={15} />
+              {view.lockSuits && view.numberLock ? '激縛り' : view.numberLock ? '数字縛り' : '縛り'}
               {view.lockSuits && (
                 <span className="lock-suits">
                   {view.lockSuits.map((s) => (
@@ -321,7 +326,7 @@ export function Table({ client, onExit }: { client: GameClient; onExit: () => vo
         <div className="my-plate">
           {me !== null && (
             <>
-              <span className="avatar-emoji sm">{AVATARS[room?.seats[me]?.avatar ?? 0]}</span>
+              <Avatar id={room?.seats[me]?.avatar ?? 0} className="avatar-emoji sm" />
               <span className="my-name">{view.names[me]}</span>
               {view.prevRanks && <span className={`rank-chip r${view.prevRanks[me]}`}>{titles[view.prevRanks[me]]}</span>}
               <span className="score-chip">{view.scores[me]}pt</span>
@@ -363,11 +368,12 @@ export function Table({ client, onExit }: { client: GameClient; onExit: () => vo
               {settings.sortMode === 'strength' ? '強さ順' : 'マーク順'}
             </button>
             <button className="btn ghost sm" onClick={doHint} disabled={mode === 'wait' || mode === 'bomber'} title="ヒント (H)">
-              💡 ヒント
+              <Icon name="bulb" size={16} />
+              ヒント
             </button>
             <div className="stamp-wrap">
-              <button className="btn ghost sm" onClick={() => setStampOpen(!stampOpen)}>
-                😀
+              <button className="btn ghost sm" onClick={() => setStampOpen(!stampOpen)} title="スタンプ">
+                <Icon name="smile" size={18} />
               </button>
               <AnimatePresence>
                 {stampOpen && (
@@ -488,7 +494,7 @@ function BomberPicker({ count, onDone, title }: { count: number; onDone: (r: num
   return (
     <motion.div className="modal-back" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
       <motion.div className="modal bomber" initial={{ scale: 0.8 }} animate={{ scale: 1 }}>
-        <h2>💣 {title}</h2>
+        <h2>{title}</h2>
         <p>全員に捨てさせる数字を {count} つ選んでください（自分も捨てます）</p>
         <div className="rank-grid">
           {ranks.map((r) => (
