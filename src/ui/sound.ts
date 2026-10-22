@@ -1,5 +1,5 @@
 // 効果音と BGM（すべて Web Audio で合成。音源ファイルなし）
-// 和の雰囲気を出すため、琴は Karplus-Strong、太鼓はピッチの下がるサイン波で作る。
+// ポップで軽い音にするため、木琴（マリンバ）風の音とキックドラムで構成する。
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
@@ -10,14 +10,14 @@ let settings = { sfx: 0.7, bgm: 0.35, muted: false };
 let bgmTimer: ReturnType<typeof setTimeout> | null = null;
 let bgmOn = false;
 
-// 都節音階 (D, Eb, G, A, Bb)
-const MIYAKO = [0, 1, 5, 7, 8];
-const BASE_FREQ = 293.66; // D4
+// 長調のペンタトニック (C, D, E, G, A) — 明るく、どの音を重ねても濁らない
+const PENTA = [0, 2, 4, 7, 9];
+const BASE_FREQ = 261.63; // C4
 
 function note(step: number): number {
   const oct = Math.floor(step / 5);
   const deg = ((step % 5) + 5) % 5;
-  return BASE_FREQ * Math.pow(2, oct + MIYAKO[deg] / 12);
+  return BASE_FREQ * Math.pow(2, oct + PENTA[deg] / 12);
 }
 
 function ensure(): AudioContext | null {
@@ -137,68 +137,24 @@ function tone(t: number, freq: number, dur: number, vol: number, type: Oscillato
   o.stop(t + dur + 0.02);
 }
 
-// 琴の音（Karplus-Strong）。音の高さごとに一度だけ合成してキャッシュする
-const KOTO_SEC = 2.2;
-const kotoCache = new Map<number, AudioBuffer>();
-function kotoBuffer(c: AudioContext, freq: number): AudioBuffer {
-  const key = Math.round(freq * 10);
-  const hit = kotoCache.get(key);
-  if (hit) return hit;
-  const sr = c.sampleRate;
-  const len = Math.floor(sr * KOTO_SEC);
-  const buf = c.createBuffer(1, len, sr);
-  const d = buf.getChannelData(0);
-  const period = Math.max(2, Math.floor(sr / freq));
-  const ring = new Float32Array(period);
-  for (let i = 0; i < period; i++) ring[i] = Math.random() * 2 - 1;
-  let idx = 0;
-  for (let i = 0; i < len; i++) {
-    const nx = idx + 1 === period ? 0 : idx + 1;
-    const v = (ring[idx] + ring[nx]) * 0.498;
-    d[i] = ring[idx];
-    ring[idx] = v;
-    idx = nx;
-  }
-  kotoCache.set(key, buf);
-  return buf;
-}
-
-/** よく使う音を空き時間に 1 つずつ作っておく */
+/** よく使う音を空き時間に作っておく（ノイズのみ） */
 function prewarm() {
   const c = ctx;
   if (!c) return;
-  const steps: number[] = [];
-  for (let s = -5; s <= 17; s++) steps.push(s);
-  const next = () => {
-    const s = steps.shift();
-    if (s === undefined) return;
-    kotoBuffer(c, note(s));
-    idle(next);
-  };
-  idle(() => {
-    noiseBuffer(c);
-    next();
-  });
+  idle(() => noiseBuffer(c));
 }
 
-function koto(t: number, freq: number, vol = 0.4, dest?: AudioNode) {
-  const c = ctx!;
-  const dur = KOTO_SEC;
-  const src = c.createBufferSource();
-  src.buffer = kotoBuffer(c, freq);
-  const f = c.createBiquadFilter();
-  f.type = 'lowpass';
-  f.frequency.value = 4200;
-  const g = c.createGain();
-  g.gain.setValueAtTime(vol, t);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  src.connect(f).connect(g).connect(out(dest));
-  src.start(t);
+/** 木琴（マリンバ）風の音。基音 + 高い倍音を短く鳴らすだけなので軽い */
+function mallet(t: number, freq: number, vol = 0.4, dest?: AudioNode) {
+  tone(t, freq, 0.55, vol * 0.9, 'sine', dest);
+  tone(t, freq * 4, 0.09, vol * 0.22, 'sine', dest);
+  tone(t, freq * 2, 0.18, vol * 0.12, 'triangle', dest);
 }
 
+/** キックドラム（ポン！と弾む低音） */
 function taiko(t: number, vol = 0.9) {
-  tone(t, 140, 0.55, vol, 'sine', undefined, 45);
-  noise(t, 0.12, 300, 0.7, vol * 0.5, 'lowpass');
+  tone(t, 170, 0.3, vol, 'sine', undefined, 55);
+  noise(t, 0.04, 3000, 0.8, vol * 0.25, 'highpass');
 }
 
 type SfxName =
@@ -228,8 +184,8 @@ export function sfx(name: SfxName) {
       tone(t + 0.07, 470, 0.14, 0.14, 'sine');
       break;
     case 'turn':
-      koto(t, note(7), 0.25);
-      koto(t + 0.09, note(9), 0.22);
+      mallet(t, note(7), 0.25);
+      mallet(t + 0.09, note(9), 0.22);
       break;
     case 'error':
       tone(t, 160, 0.18, 0.2, 'square');
@@ -241,7 +197,7 @@ export function sfx(name: SfxName) {
       taiko(t, 1);
       taiko(t + 0.28, 1);
       taiko(t + 0.5, 1.1);
-      [0, 2, 4, 5, 7, 9, 10].forEach((s, i) => koto(t + 0.55 + i * 0.07, note(s + 2), 0.35));
+      [0, 2, 4, 5, 7, 9, 10].forEach((s, i) => mallet(t + 0.55 + i * 0.07, note(s + 2), 0.35));
       tone(t + 0.5, 70, 1.6, 0.5, 'sawtooth', undefined, 35);
       break;
     case 'slash':
@@ -255,7 +211,7 @@ export function sfx(name: SfxName) {
       noise(t + 0.09, 0.15, 4000, 3, 0.3);
       break;
     case 'back':
-      [9, 7, 5, 2].forEach((s, i) => koto(t + i * 0.08, note(s), 0.3));
+      [9, 7, 5, 2].forEach((s, i) => mallet(t + i * 0.08, note(s), 0.3));
       break;
     case 'skip':
       tone(t, 500, 0.08, 0.2, 'triangle', undefined, 1200);
@@ -273,23 +229,23 @@ export function sfx(name: SfxName) {
       tone(t, 700, 0.15, 0.1, 'sine', undefined, 1100);
       break;
     case 'spade':
-      koto(t, note(12), 0.4);
+      mallet(t, note(12), 0.4);
       noise(t, 0.3, 6000, 1, 0.25, 'highpass');
       break;
     case 'win':
-      [0, 2, 4, 5, 7].forEach((s, i) => koto(t + i * 0.09, note(s + 5), 0.35));
+      [0, 2, 4, 5, 7].forEach((s, i) => mallet(t + i * 0.09, note(s + 5), 0.35));
       break;
     case 'fanfare':
       taiko(t, 0.8);
-      [0, 2, 4, 5, 7, 10, 12].forEach((s, i) => koto(t + 0.1 + i * 0.1, note(s + 3), 0.35));
+      [0, 2, 4, 5, 7, 10, 12].forEach((s, i) => mallet(t + 0.1 + i * 0.1, note(s + 3), 0.35));
       tone(t + 0.8, note(8) / 2, 1.5, 0.15, 'triangle');
       break;
     case 'lose':
-      [7, 5, 2, 0].forEach((s, i) => koto(t + i * 0.16, note(s), 0.3));
+      [7, 5, 2, 0].forEach((s, i) => mallet(t + i * 0.16, note(s), 0.3));
       break;
     case 'miyako':
       taiko(t, 0.8);
-      [10, 8, 5, 3, 0].forEach((s, i) => koto(t + 0.1 + i * 0.12, note(s), 0.32));
+      [10, 8, 5, 3, 0].forEach((s, i) => mallet(t + 0.1 + i * 0.12, note(s), 0.32));
       break;
     case 'stamp':
       tone(t, 520, 0.08, 0.15, 'sine', undefined, 880);
@@ -297,7 +253,7 @@ export function sfx(name: SfxName) {
   }
 }
 
-// ───────────── BGM（ゆるやかな琴のジェネラティブ演奏） ─────────────
+// ───────────── BGM（明るいマリンバのループ） ─────────────
 
 export function setBgm(on: boolean) {
   bgmOn = on;
@@ -306,24 +262,36 @@ export function setBgm(on: boolean) {
   if (on) loop();
 }
 
-let phrase = 0;
+// I - V - vi - IV のコード進行に合わせて、アルペジオと短いメロディを鳴らす
+const CHORDS = [
+  [0, 2, 4], // C
+  [3, 5, 6], // G
+  [4, 5, 7], // Am 付近
+  [1, 3, 5], // F 付近（ペンタトニックで近似）
+];
+let bar = 0;
 function loop() {
   if (!bgmOn) return;
   const c = ensure();
+  const beat = 0.34;
   if (c && c.state === 'running' && !settings.muted && settings.bgm > 0) {
     const t = c.currentTime + 0.05;
-    phrase++;
-    const root = [0, -2, 3, 1][phrase % 4];
-    // 低音
-    koto(t, note(root - 5) , 0.3, bgmGain!);
-    // 旋律
-    const steps = 3 + Math.floor(Math.random() * 3);
-    let cur = root + 5 + Math.floor(Math.random() * 4);
-    for (let i = 0; i < steps; i++) {
-      cur += Math.floor(Math.random() * 5) - 2;
-      cur = Math.max(root + 2, Math.min(root + 12, cur));
-      koto(t + 0.6 + i * (0.45 + Math.random() * 0.4), note(cur), 0.18 + Math.random() * 0.08, bgmGain!);
+    const chord = CHORDS[bar % CHORDS.length];
+    const out = bgmGain!;
+    mallet(t, note(chord[0] - 5), 0.28, out);
+    mallet(t + beat * 4, note(chord[0] - 5), 0.2, out);
+    for (let i = 0; i < 8; i++) {
+      if (i % 2 === 1 && Math.random() < 0.35) continue;
+      mallet(t + i * beat, note(chord[i % 3] + 5), 0.13, out);
     }
+    if (bar % 2 === 1) {
+      let cur = chord[0] + 10;
+      for (let i = 0; i < 4; i++) {
+        cur += Math.floor(Math.random() * 3) - 1;
+        mallet(t + (i * 2 + 1) * beat, note(cur), 0.1, out);
+      }
+    }
+    bar++;
   }
-  bgmTimer = setTimeout(loop, 3600 + Math.random() * 1600);
+  bgmTimer = setTimeout(loop, beat * 8 * 1000);
 }

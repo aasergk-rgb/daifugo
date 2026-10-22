@@ -59,9 +59,10 @@ export type LobbyMsg =
 
 export const STAMPS = ['👍', '😂', '😱', '🔥', '🙏', '😎', '💢', '🎉', 'ナイス！', 'うそでしょ', 'まだまだ', 'おつかれ'];
 
-export const AVATARS = ['🦊', '🐯', '🐼', '🐸', '🐙', '🦉', '🐲', '🦁', '🐰', '🐧', '👺', '🤖'];
+export const AVATARS = ['🐶', '🐱', '🐰', '🐻', '🐼', '🐨', '🐸', '🐷', '🐵', '🐧', '🦊', '🦄'];
 
-export const CPU_NAMES = ['銀次', '小町', '鉄斎', '紅葉', '雷蔵', '千鶴', '玄馬', '桔梗', '弥七', '朱音'];
+/** CPU の名前。i 番目の CPU は AVATARS[(i + 1) % 12] の動物 */
+export const CPU_NAMES = ['ミケ', 'ウサコ', 'クマキチ', 'パンタ', 'コアラン', 'ケロ', 'ブーブ', 'モンキチ', 'ペンペン', 'コンタ'];
 
 export function genCode(len = 5): string {
   const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';

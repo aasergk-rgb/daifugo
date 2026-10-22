@@ -215,7 +215,7 @@ export class Room {
       id: genId(),
       kind: 'cpu',
       name,
-      avatar: (CPU_NAMES.indexOf(name) + 3) % 12,
+      avatar: (CPU_NAMES.indexOf(name) + 1) % 12,
       difficulty,
       connected: true,
       isHost: false,

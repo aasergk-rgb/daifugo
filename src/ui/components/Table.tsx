@@ -7,7 +7,7 @@ import { SUIT_SYMBOL, rankLabel, sortCards } from '../../engine/cards';
 import { isFoulFinish } from '../../engine/game';
 import { EFFECT_INFO, effectDisplayName, rankTitles, ruleBadges } from '../../engine/rules';
 import { isMyTurn, stateFromView, viewLegalPlays, viewRev, viewValidate } from '../../engine/view';
-import { STAMPS } from '../../net/protocol';
+import { AVATARS, STAMPS } from '../../net/protocol';
 import { GameClient, useClient } from '../client';
 import { useDelayed, useNow, useSize } from '../hooks';
 import { useLite } from '../perf';
@@ -230,24 +230,7 @@ export function Table({ client, onExit }: { client: GameClient; onExit: () => vo
       {/* ── 卓 ── */}
       <div className={`table-area ${snap.shake % 2 ? 'shake-a' : snap.shake ? 'shake-b' : ''}`} ref={tableRef}>
         <div className="felt">
-          <div className="felt-rim" />
           <div className="felt-pattern" />
-          <div className="felt-logo">
-            <span>大富豪</span>
-            <small>DAIFUGO</small>
-          </div>
-          <div className={`dir-ring ${view.direction === 1 ? 'cw' : 'ccw'}`}>
-            <svg viewBox="-100 -100 200 200">
-              <defs>
-                <path id="dirArc" d="M-80 0 A80 80 0 1 1 80 0 A80 80 0 1 1 -80 0" />
-              </defs>
-              <text className="dir-text">
-                <textPath href="#dirArc">
-                  {view.direction === 1 ? '→ → → → → → → → → → → → → → → → → → → → → → → →' : '← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ←'}
-                </textPath>
-              </text>
-            </svg>
-          </div>
         </div>
 
         {/* HUD */}
@@ -261,6 +244,10 @@ export function Table({ client, onExit }: { client: GameClient; onExit: () => vo
               </span>
               <span className="st-strong">{rev ? '3' : '2'}</span>
             </span>
+          </div>
+          <div className="dir-chip" title="手番の回る向き">
+            <span className={`dir-icon ${view.direction === 1 ? 'cw' : 'ccw'}`}>↻</span>
+            {view.direction === 1 ? '時計回り' : '反時計回り'}
           </div>
           {(view.lockSuits || view.numberLock) && (
             <motion.div className="lock-chip" initial={{ scale: 0 }} animate={{ scale: 1 }}>
@@ -334,7 +321,7 @@ export function Table({ client, onExit }: { client: GameClient; onExit: () => vo
         <div className="my-plate">
           {me !== null && (
             <>
-              <span className="avatar-emoji sm">{['🦊', '🐯', '🐼', '🐸', '🐙', '🦉', '🐲', '🦁', '🐰', '🐧', '👺', '🤖'][room?.seats[me]?.avatar ?? 0]}</span>
+              <span className="avatar-emoji sm">{AVATARS[room?.seats[me]?.avatar ?? 0]}</span>
               <span className="my-name">{view.names[me]}</span>
               {view.prevRanks && <span className={`rank-chip r${view.prevRanks[me]}`}>{titles[view.prevRanks[me]]}</span>}
               <span className="score-chip">{view.scores[me]}pt</span>

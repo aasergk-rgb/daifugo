@@ -108,11 +108,12 @@ export function Seat({ p, view, seat, pos, active, fx, deadline, now, turnSecond
         {stamp && (
           <motion.div
             key={stamp}
-            className={`hanko ${out === 'foul' || out === 'miyako' ? 'is-bad' : ''}`}
-            initial={{ scale: 3, opacity: 0, rotate: -30 }}
-            animate={{ scale: 1, opacity: 1, rotate: -12 }}
+            className={`rank-stamp ${out === 'foul' || out === 'miyako' ? 'is-bad' : ''} ${stamp === '大富豪' ? 'is-top' : ''}`}
+            initial={{ scale: 0.2, opacity: 0, rotate: -20 }}
+            animate={{ scale: 1, opacity: 1, rotate: -6 }}
             transition={{ type: 'spring', stiffness: 500, damping: 16 }}
           >
+            {stamp === '大富豪' && <span className="crown">👑</span>}
             {stamp}
           </motion.div>
         )}

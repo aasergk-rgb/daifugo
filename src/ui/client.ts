@@ -459,7 +459,7 @@ export class GameClient {
 }
 
 const SPECIAL: Record<string, { title: string; sub: string; tone: Tone }> = {
-  eightCut: { title: '八切り', sub: '場が流れる！', tone: 'gold' },
+  eightCut: { title: '8切り', sub: '場が流れる！', tone: 'gold' },
   spade3: { title: 'スペ3返し', sub: 'ジョーカー撃破！', tone: 'blue' },
   sandstorm: { title: '砂嵐', sub: '3のスリーカードで場を流す', tone: 'gold' },
   ambulance: { title: '救急車', sub: '9のペアで場を流す', tone: 'red' },
@@ -471,7 +471,7 @@ const SPECIAL: Record<string, { title: string; sub: string; tone: Tone }> = {
 
 function eightName(v: GameView) {
   const r = v.config.effects.eightCut.rank;
-  return r === 8 ? '八切り' : `${rankLabel(r)}切り`;
+  return r === 8 ? '8切り' : `${rankLabel(r)}切り`;
 }
 
 function cardOf(id: string): Card {

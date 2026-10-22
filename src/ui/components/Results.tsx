@@ -74,7 +74,7 @@ export function Results({ client, view, room, onExit }: { client: GameClient; vi
                   {final ? (
                     <span className="res-rank">{i + 1}位</span>
                   ) : (
-                    <motion.span className={`hanko sm r${last.ranks[p]}`} initial={{ scale: 2.4, rotate: -30, opacity: 0 }} animate={{ scale: 1, rotate: -8, opacity: 1 }} transition={{ delay: 0.3 + i * 0.12, type: 'spring', stiffness: 500, damping: 15 }}>
+                    <motion.span className={`rank-stamp sm r${last.ranks[p]}`} initial={{ scale: 0.2, rotate: -20, opacity: 0 }} animate={{ scale: 1, rotate: -4, opacity: 1 }} transition={{ delay: 0.3 + i * 0.12, type: 'spring', stiffness: 500, damping: 15 }}>
                       {titles[last.ranks[p]]}
                     </motion.span>
                   )}

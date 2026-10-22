@@ -6,21 +6,21 @@ import { RuleConfig, normalizeConfig, presetConfig } from '../engine/rules';
 import type { GraphicsMode } from './perf';
 import { configureSound } from './sound';
 
-export type ThemeId = 'urushi' | 'casino' | 'sakura' | 'neon';
-export type BackId = 'asanoha' | 'seigaiha' | 'kikko' | 'shippo';
+export type ThemeId = 'soda' | 'melon' | 'peach' | 'night';
+export type BackId = 'dots' | 'stripes' | 'check' | 'wave';
 
 export const THEMES: { id: ThemeId; name: string; desc: string }[] = [
-  { id: 'urushi', name: '漆黒金箔', desc: '漆と金箔の重厚な卓' },
-  { id: 'casino', name: '翠緑カジノ', desc: '王道のグリーンフェルト' },
-  { id: 'sakura', name: '夜桜', desc: '桜舞う月夜の座敷' },
-  { id: 'neon', name: 'ネオン東京', desc: '光る夜の裏カジノ' },
+  { id: 'soda', name: 'ソーダ', desc: '青いテーブルと明るい背景' },
+  { id: 'melon', name: 'メロン', desc: 'さわやかなグリーン' },
+  { id: 'peach', name: 'ピーチ', desc: 'やわらかいピンク' },
+  { id: 'night', name: 'ナイト', desc: '目にやさしい暗めの配色' },
 ];
 
 export const BACKS: { id: BackId; name: string }[] = [
-  { id: 'asanoha', name: '麻の葉' },
-  { id: 'seigaiha', name: '青海波' },
-  { id: 'kikko', name: '亀甲' },
-  { id: 'shippo', name: '七宝' },
+  { id: 'dots', name: 'ドット' },
+  { id: 'stripes', name: 'ストライプ' },
+  { id: 'check', name: 'チェック' },
+  { id: 'wave', name: 'ウェーブ' },
 ];
 
 export interface CustomRule {
@@ -54,8 +54,8 @@ const KEY = 'daifugo.settings.v1';
 const defaults: Settings = {
   name: '',
   avatar: 0,
-  theme: 'urushi',
-  back: 'asanoha',
+  theme: 'soda',
+  back: 'dots',
   sfx: 0.7,
   bgm: 0.35,
   muted: false,
@@ -77,6 +77,9 @@ function load(): Settings {
     if (!raw) return { ...defaults };
     const s = { ...defaults, ...JSON.parse(raw) } as Settings;
     s.rules = normalizeConfig(s.rules);
+    // 旧デザインのテーマ・裏面は新しいものに置き換える
+    if (!THEMES.some((t) => t.id === s.theme)) s.theme = defaults.theme;
+    if (!BACKS.some((b) => b.id === s.back)) s.back = defaults.back;
     s.customRules = (s.customRules || []).map((r) => ({ ...r, config: normalizeConfig(r.config) }));
     return s;
   } catch {

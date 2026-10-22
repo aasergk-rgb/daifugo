@@ -1,120 +1,103 @@
-// 革命・八切りなどの大きな演出
+// 革命・8切りなどの演出（ポップなステッカー風）
 
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect } from 'react';
 import type { EffectItem } from '../client';
 import { useLite } from '../perf';
-import { burst, confetti, shockwave } from './FxCanvas';
 import { SuitShape } from './CardArt';
+import { burst, confetti } from './FxCanvas';
 
-const TONE_COLORS: Record<string, string[]> = {
-  gold: ['#fff1b8', '#f3d27a', '#e2b552', '#ffffff'],
-  red: ['#ff4d5e', '#ff9a8b', '#f3d27a', '#ffffff'],
-  blue: ['#4cc9f0', '#a0e7ff', '#ffffff'],
-  purple: ['#c77dff', '#e0aaff', '#f3d27a'],
-  green: ['#80ed99', '#c7f9cc', '#ffffff'],
-  ink: ['#9aa0b5', '#ffffff', '#5c6070'],
+const POP = ['#FFC93C', '#FF4F7B', '#4DA3FF', '#14B079', '#8B6CFF', '#FF961F'];
+const TONE: Record<string, string> = {
+  gold: '#FFC93C',
+  red: '#FF4F7B',
+  blue: '#4DA3FF',
+  purple: '#8B6CFF',
+  green: '#14B079',
+  ink: '#8A89AE',
 };
+const INK = '#2B2A55';
+
+const BIG = new Set(['revolution', 'counter', 'gekokujo', 'tenpen', 'daifugo']);
 
 /**
- * 演出の飾り。SVG 自体は動かさず、包んだ要素の transform / opacity だけを動かす
- * （SVG 内部を毎フレーム変えると、そのたびに全体を描き直すことになり重い）
+ * 背景の飾り。SVG 自体は動かさず、包んだ要素の transform / opacity だけを動かす
+ * （SVG 内部を毎フレーム変えると全体を描き直すことになり重い）
  */
-function Deco({ kind }: { kind: string }) {
-  const pop = (className: string, svg: JSX.Element, anim: Record<string, any> = {}) => (
+function Deco({ kind, color }: { kind: string; color: string }) {
+  const wrap = (className: string, svg: JSX.Element, anim: { initial: any; animate: any; transition: any }) => (
     <div className={`fx-deco ${className}`}>
-      <motion.div
-        className="fx-deco-inner"
-        initial={anim.initial ?? { scale: 0.6, opacity: 0 }}
-        animate={anim.animate ?? { scale: 1, opacity: 1 }}
-        transition={anim.transition ?? { duration: 0.3, ease: 'easeOut' }}
-      >
+      <motion.div className="fx-deco-inner" initial={anim.initial} animate={anim.animate} transition={anim.transition}>
         {svg}
       </motion.div>
     </div>
   );
+  if (BIG.has(kind)) {
+    // 放射状のサンバースト
+    return wrap(
+      'fx-burst',
+      <svg viewBox="-100 -100 200 200">
+        {Array.from({ length: 16 }, (_, i) => (
+          <path key={i} transform={`rotate(${i * 22.5})`} d="M0 0 L-9 -100 L9 -100 Z" fill={color} opacity="0.22" />
+        ))}
+      </svg>,
+      { initial: { scale: 0.4, rotate: -20, opacity: 0 }, animate: { scale: 1, rotate: 10, opacity: 1 }, transition: { duration: 1.2, ease: 'easeOut' } },
+    );
+  }
   switch (kind) {
-    case 'revolution':
-    case 'counter':
-    case 'gekokujo':
-    case 'tenpen':
-      return pop(
-        'fx-cracks',
-        <svg viewBox="-200 -120 400 240">
-          {Array.from({ length: 14 }, (_, i) => {
-            const a = (i / 14) * Math.PI * 2 + (i % 2) * 0.2;
-            const r1 = 40 + (i % 3) * 10;
-            const r2 = 160 + (i % 4) * 30;
-            const mx = Math.cos(a + 0.12) * ((r1 + r2) / 2);
-            const my = Math.sin(a + 0.12) * ((r1 + r2) / 2) * 0.6;
-            const d = `M${Math.cos(a) * r1} ${Math.sin(a) * r1 * 0.6} L${mx} ${my} L${Math.cos(a) * r2} ${Math.sin(a) * r2 * 0.6}`;
-            return (
-              <g key={i}>
-                <path className="glow" d={d} />
-                <path d={d} />
-              </g>
-            );
-          })}
-        </svg>,
-        { initial: { scale: 0.3, opacity: 0 }, animate: { scale: 1, opacity: 1 }, transition: { duration: 0.28, ease: 'easeOut', delay: 0.1 } },
-      );
     case 'eightCut':
-      return pop(
-        'fx-slash',
-        <svg viewBox="0 0 400 240" preserveAspectRatio="none">
-          <line x1="-20" y1="230" x2="420" y2="10" />
-          <line x1="-20" y1="236" x2="420" y2="16" className="thin" />
+    case 'bomber':
+    case 'sandstorm':
+    case 'ambulance':
+    case 'rokurokubi':
+    case 'sixCard':
+    case 'strongestSeq':
+    case 'doubleJoker':
+      // 「ドカン！」の星形
+      return wrap(
+        'fx-pow',
+        <svg viewBox="-100 -100 200 200">
+          <path
+            d="M0 -92 L20 -42 L74 -66 L44 -18 L96 6 L42 24 L64 78 L14 44 L0 96 L-14 44 L-64 78 L-42 24 L-96 6 L-44 -18 L-74 -66 L-20 -42 Z"
+            fill={color}
+            stroke={INK}
+            strokeWidth="6"
+            strokeLinejoin="round"
+          />
         </svg>,
-        { initial: { scaleX: 0, opacity: 1 }, animate: { scaleX: 1, opacity: 1 }, transition: { duration: 0.22, ease: 'easeIn' } },
+        { initial: { scale: 0.2, rotate: -25 }, animate: { scale: 1, rotate: 0 }, transition: { type: 'spring', stiffness: 320, damping: 12 } },
+      );
+    case 'spade3':
+      return wrap(
+        'fx-pow',
+        <svg viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="46" fill="#fff" stroke={INK} strokeWidth="4" />
+          <SuitShape suit="S" x={50} y={52} size={62} />
+        </svg>,
+        { initial: { scale: 0.2, rotate: -30 }, animate: { scale: 1, rotate: 0 }, transition: { type: 'spring', stiffness: 320, damping: 14 } },
       );
     case 'lock':
-      return pop(
-        'fx-lock',
+      return wrap(
+        'fx-icon',
         <svg viewBox="-60 -60 120 120">
-          <path d="M-22 -6 L-22 -22 C -22 -44 22 -44 22 -22 L22 -6" fill="none" strokeWidth="9" />
-          <rect x="-32" y="-8" width="64" height="50" rx="8" />
-          <circle cy="14" r="7" className="hole" />
-          <rect x="-3" y="16" width="6" height="14" className="hole" />
+          <path d="M-22 -6 L-22 -22 C -22 -44 22 -44 22 -22 L22 -6" fill="none" stroke={INK} strokeWidth="10" strokeLinecap="round" />
+          <rect x="-34" y="-8" width="68" height="54" rx="12" fill={color} stroke={INK} strokeWidth="6" />
+          <circle cy="14" r="7" fill={INK} />
+          <rect x="-3.5" y="16" width="7" height="14" rx="3" fill={INK} />
         </svg>,
-        { initial: { y: -60, opacity: 0 }, animate: { y: 0, opacity: 1 }, transition: { type: 'spring', stiffness: 400, damping: 14 } },
+        { initial: { y: -50, opacity: 0 }, animate: { y: 0, opacity: 1 }, transition: { type: 'spring', stiffness: 420, damping: 14 } },
       );
     case 'reverse':
     case 'elevenBack':
-      return pop(
-        'fx-arrows',
+      return wrap(
+        'fx-icon',
         <svg viewBox="-60 -60 120 120">
-          <path d="M-40 0 A40 40 0 0 1 34 -20" fill="none" strokeWidth="6" />
-          <path d="M40 0 A40 40 0 0 1 -34 20" fill="none" strokeWidth="6" />
-          <path d="M34 -20 L40 -42 L18 -30 Z" className="tip" />
-          <path d="M-34 20 L-40 42 L-18 30 Z" className="tip" />
+          <path d="M-38 0 A38 38 0 0 1 30 -22" fill="none" stroke={color} strokeWidth="12" strokeLinecap="round" />
+          <path d="M38 0 A38 38 0 0 1 -30 22" fill="none" stroke={color} strokeWidth="12" strokeLinecap="round" />
+          <path d="M22 -40 L46 -26 L22 -10 Z" fill={color} />
+          <path d="M-22 40 L-46 26 L-22 10 Z" fill={color} />
         </svg>,
-        { initial: { rotate: 0, opacity: 0 }, animate: { rotate: kind === 'reverse' ? -360 : 360, opacity: 1 }, transition: { duration: 0.9, ease: 'easeInOut' } },
-      );
-    case 'daifugo':
-      return pop(
-        'fx-rays',
-        <svg viewBox="-100 -100 200 200">
-          {Array.from({ length: 18 }, (_, i) => (
-            <path key={i} transform={`rotate(${i * 20})`} d="M-5 -14 L0 -100 L5 -14 Z" />
-          ))}
-        </svg>,
-        { initial: { rotate: 0, opacity: 0 }, animate: { rotate: 30, opacity: 1 }, transition: { duration: 1.2 } },
-      );
-    case 'spade3':
-      return pop(
-        'fx-spade',
-        <svg viewBox="0 0 100 100">
-          <SuitShape suit="S" x={50} y={50} size={90} fill="url(#g-gold)" />
-        </svg>,
-        { initial: { scale: 0.2, rotate: -30, opacity: 0.9 }, animate: { scale: 1, rotate: 0, opacity: 1 }, transition: { duration: 0.6, ease: 'easeOut' } },
-      );
-    case 'bomber':
-      return pop(
-        'fx-boom',
-        <svg viewBox="-100 -100 200 200">
-          <path d="M0 -90 L18 -40 L70 -60 L40 -15 L95 5 L40 22 L62 72 L14 42 L0 95 L-14 42 L-62 72 L-40 22 L-95 5 L-40 -15 L-70 -60 L-18 -40 Z" />
-        </svg>,
-        { initial: { scale: 0.1 }, animate: { scale: 1 }, transition: { type: 'spring', stiffness: 300, damping: 10 } },
+        { initial: { rotate: 0, opacity: 0 }, animate: { rotate: kind === 'reverse' ? -360 : 360, opacity: 1 }, transition: { duration: 0.8, ease: 'easeInOut' } },
       );
     default:
       return null;
@@ -127,57 +110,41 @@ export function EffectLayer({ effect }: { effect: EffectItem | null }) {
     if (!effect) return;
     const x = window.innerWidth / 2;
     const y = window.innerHeight * 0.45;
-    const colors = TONE_COLORS[effect.tone] ?? TONE_COLORS.gold;
-    switch (effect.kind) {
-      case 'revolution':
-      case 'counter':
-      case 'gekokujo':
-      case 'tenpen':
-        shockwave(x, y, colors[0]);
-        burst({ x, y, count: 70, colors, speed: 13, gravity: 0.05, life: 90, size: 4 });
-        break;
-      case 'daifugo':
-        confetti();
-        burst({ x, y, count: 50, colors, speed: 10, gravity: 0.1, size: 4 });
-        break;
-      case 'eightCut':
-        burst({ x, y, count: 40, colors, speed: 12, spread: 0.5, angle: -0.46, gravity: 0.02, life: 50, size: 3 });
-        burst({ x, y, count: 40, colors, speed: 12, spread: 0.5, angle: Math.PI - 0.46, gravity: 0.02, life: 50, size: 3 });
-        break;
-      case 'bomber':
-        shockwave(x, y, '#ff4d5e');
-        burst({ x, y, count: 80, colors: ['#ff4d5e', '#ffb703', '#fb8500', '#fff'], speed: 14, gravity: 0.15, life: 80, size: 5 });
-        break;
-      case 'deal':
-        break;
-      default:
-        burst({ x, y, count: 30, colors, speed: 8, gravity: 0.08, size: 3.5 });
+    const tone = TONE[effect.tone] ?? TONE.gold;
+    if (effect.kind === 'deal') return;
+    if (BIG.has(effect.kind)) {
+      confetti();
+      burst({ x, y, count: 50, colors: [tone, ...POP], speed: 11, gravity: 0.12, life: 90, size: 7, shape: 'confetti' });
+    } else {
+      burst({ x, y, count: 26, colors: [tone, '#ffffff', INK], speed: 8, gravity: 0.1, life: 60, size: 6, shape: 'confetti' });
     }
   }, [effect?.id]);
 
+  const color = effect ? TONE[effect.tone] ?? TONE.gold : TONE.gold;
   return (
     <div className="fx-layer" aria-live="polite">
       <AnimatePresence>
         {effect && (
           <motion.div
             key={effect.id}
-            className={`fx fx-${effect.kind} tone-${effect.tone}`}
+            className={`fx fx-${effect.kind} tone-${effect.tone} ${BIG.has(effect.kind) ? 'is-big' : ''}`}
+            style={{ ['--fx' as string]: color }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0, transition: { duration: 0.25 } }}
+            exit={{ opacity: 0, transition: { duration: 0.2 } }}
           >
             <div className="fx-backdrop" />
-            {!lite && <Deco kind={effect.kind} />}
+            {!lite && <Deco kind={effect.kind} color={color} />}
             <motion.div
               className="fx-title"
-              initial={lite ? { opacity: 0, scale: 1.15 } : effect.kind === 'deal' ? { y: 20, opacity: 0, scale: 1.08 } : { scale: 2.6, opacity: 0, rotate: -6 }}
-              animate={lite ? { opacity: 1, scale: 1 } : effect.kind === 'deal' ? { y: 0, opacity: 1, scale: 1 } : { scale: 1, opacity: 1, rotate: 0 }}
-              transition={lite ? { duration: 0.2 } : effect.kind === 'deal' ? { duration: 0.6 } : { type: 'spring', stiffness: 520, damping: 18 }}
+              initial={lite ? { opacity: 0, scale: 1.1 } : effect.kind === 'deal' ? { y: 24, opacity: 0 } : { scale: 0.3, opacity: 0, rotate: -12 }}
+              animate={lite ? { opacity: 1, scale: 1 } : effect.kind === 'deal' ? { y: 0, opacity: 1 } : { scale: 1, opacity: 1, rotate: -4 }}
+              transition={lite ? { duration: 0.18 } : effect.kind === 'deal' ? { duration: 0.35, ease: 'easeOut' } : { type: 'spring', stiffness: 460, damping: 14 }}
             >
               {effect.title}
             </motion.div>
             {effect.sub && (
-              <motion.div className="fx-sub" initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.18 }}>
+              <motion.div className="fx-sub" initial={{ y: 14, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: lite ? 0 : 0.15 }}>
                 {effect.sub}
               </motion.div>
             )}

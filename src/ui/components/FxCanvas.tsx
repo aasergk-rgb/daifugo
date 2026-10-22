@@ -1,4 +1,4 @@
-// 画面全体のパーティクル（背景の金粉・桜吹雪・ネオン、演出の紙吹雪・火花）
+// 画面全体のパーティクル（メニュー背景のふわふわ水玉、演出の紙吹雪）
 //
 // 軽量化のポイント
 //  - 光る粒は shadowBlur を使わず、色ごとに一度だけ描いた光のスプライトを drawImage する
@@ -10,7 +10,7 @@ import { useEffect, useRef } from 'react';
 import { isLite } from '../perf';
 import type { ThemeId } from '../settings';
 
-type Shape = 'spark' | 'confetti' | 'petal' | 'dust' | 'ring';
+type Shape = 'spark' | 'confetti' | 'petal' | 'dust' | 'ring' | 'dot';
 
 interface P {
   x: number;
@@ -100,7 +100,7 @@ export function confetti() {
       life: 180,
       shape: 'confetti',
       size: 7,
-      colors: ['#f3d27a', '#e94560', '#4cc9f0', '#80ed99', '#ffffff', '#c77dff'],
+      colors: ['#FFC93C', '#FF4F7B', '#4DA3FF', '#14B079', '#8B6CFF', '#FF961F'],
     });
   }
 }
@@ -113,10 +113,10 @@ export function shockwave(x: number, y: number, color = '#f3d27a') {
 }
 
 const AMBIENT: Record<ThemeId, { shape: Shape; colors: string[]; rate: number }> = {
-  urushi: { shape: 'dust', colors: ['#f3d27a', '#e2b552', '#fff1b8'], rate: 0.3 },
-  casino: { shape: 'dust', colors: ['#fff6d6', '#f3d27a'], rate: 0.14 },
-  sakura: { shape: 'petal', colors: ['#ffc0d6', '#ffd9e6', '#ff9fbf', '#fff0f5'], rate: 0.24 },
-  neon: { shape: 'spark', colors: ['#00f5ff', '#ff2fd6', '#b8ff3c'], rate: 0.22 },
+  soda: { shape: 'dot', colors: ['#FFC93C', '#FF4F7B', '#4DA3FF', '#14B079'], rate: 0.06 },
+  melon: { shape: 'dot', colors: ['#FFC93C', '#14B079', '#4DA3FF', '#FF961F'], rate: 0.06 },
+  peach: { shape: 'dot', colors: ['#FF4F7B', '#FFC93C', '#8B6CFF', '#4DA3FF'], rate: 0.06 },
+  night: { shape: 'dot', colors: ['#FFC93C', '#FF4F7B', '#4DA3FF', '#8B6CFF'], rate: 0.05 },
 };
 
 /** 色ごとの「光る粒」スプライト（中心が明るく外側へ減衰） */
@@ -189,14 +189,15 @@ export function FxCanvas({ theme, ambient = true }: { theme: ThemeId; ambient?: 
       const amb = AMBIENT[themeRef.current];
       if (ambientOn() && Math.random() < amb.rate * step) {
         const petal = amb.shape === 'petal';
+        const dot = amb.shape === 'dot';
         particles.push({
           x: Math.random() * w,
           y: petal ? -10 : h + 10,
           vx: petal ? 0.4 + Math.random() * 0.8 : (Math.random() - 0.5) * 0.3,
-          vy: petal ? 0.6 + Math.random() * 0.9 : -(0.25 + Math.random() * 0.6),
+          vy: petal ? 0.6 + Math.random() * 0.9 : -(0.25 + Math.random() * (dot ? 0.35 : 0.6)),
           life: 0,
-          max: petal ? 700 : 520,
-          size: petal ? 5 + Math.random() * 4 : 1 + Math.random() * 2.2,
+          max: petal ? 700 : dot ? 900 : 520,
+          size: petal ? 5 + Math.random() * 4 : dot ? 4 + Math.random() * 7 : 1 + Math.random() * 2.2,
           color: amb.colors[Math.floor(Math.random() * amb.colors.length)],
           shape: amb.shape,
           rot: Math.random() * 6,
@@ -240,13 +241,20 @@ export function FxCanvas({ theme, ambient = true }: { theme: ThemeId; ambient?: 
           continue;
         }
         if (t < 0) continue;
-        const alpha = p.ambient ? Math.sin(Math.PI * t) * (p.shape === 'dust' ? 0.7 : 0.85) : 1 - t * t;
+        const alpha = p.ambient ? Math.sin(Math.PI * t) * (p.shape === 'dot' ? 0.35 : p.shape === 'dust' ? 0.7 : 0.85) : 1 - t * t;
         ctx.globalAlpha = Math.max(0, alpha);
         switch (p.shape) {
           case 'spark':
           case 'dust': {
             const r = (p.shape === 'spark' ? p.size * (1 - t * 0.6) : p.size) * 3;
             ctx.drawImage(glowSprite(p.color), p.x - r, p.y - r, r * 2, r * 2);
+            break;
+          }
+          case 'dot': {
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
             break;
           }
           case 'confetti': {

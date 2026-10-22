@@ -13,7 +13,8 @@ import { EffectLayer } from './components/EffectLayer';
 import { PlayingCard } from './components/PlayingCard';
 import { RuleEditor } from './components/RuleEditor';
 import { isLite } from './perf';
-import { BACKS, THEMES, updateSettings, useSettings } from './settings';
+import { BACKS, BackId, THEMES, updateSettings, useSettings } from './settings';
+import { CardSvg } from './components/CardArt';
 import { sfx } from './sound';
 
 const DIFFS: Difficulty[] = ['easy', 'normal', 'hard', 'oni'];
@@ -39,10 +40,10 @@ export function Title({ go }: { go: (s: Screen) => void }) {
   const settings = useSettings();
   const preset = matchPreset(settings.rules);
   const items: { s: Screen; label: string; sub: string; icon: string }[] = [
-    { s: 'cpu', label: 'CPU対戦', sub: 'VS COMPUTER', icon: '🎴' },
-    { s: 'online', label: 'オンライン対戦', sub: OFFLINE_ONLY ? 'ダウンロード版で遊べます' : 'ONLINE', icon: '🌐' },
-    { s: 'howto', label: '遊び方・ルール', sub: 'HOW TO PLAY', icon: '📜' },
-    { s: 'settings', label: '設定', sub: 'SETTINGS', icon: '⚙' },
+    { s: 'cpu', label: 'CPU対戦', sub: 'コンピューターと遊ぶ', icon: '🃏' },
+    { s: 'online', label: 'オンライン対戦', sub: OFFLINE_ONLY ? 'ダウンロード版で遊べます' : '友だちと遊ぶ', icon: '🌐' },
+    { s: 'howto', label: '遊び方・ルール', sub: 'はじめての人へ', icon: '📖' },
+    { s: 'settings', label: '設定', sub: '名前・テーマ・音', icon: '⚙️' },
   ];
   return (
     <div className="screen title-screen">
@@ -54,15 +55,23 @@ export function Title({ go }: { go: (s: Screen) => void }) {
         ))}
       </div>
       <div className="title-center">
-        <motion.div className="logo" initial={{ opacity: 0, scale: 1.3, filter: 'blur(12px)' }} animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }} transition={{ duration: 1.1, ease: 'easeOut' }}>
-          <div className="logo-sub-top">― 天下を獲るのは誰だ ―</div>
-          <h1 className="logo-main">
-            <span>大</span>
-            <span>富</span>
-            <span>豪</span>
+        <div className="logo">
+          <h1 className="logo-main" aria-label="大富豪">
+            {['大', '富', '豪'].map((ch, i) => (
+              <motion.span
+                key={ch}
+                className={`tile t${i}`}
+                initial={{ y: -70, opacity: 0, rotate: 0 }}
+                animate={{ y: 0, opacity: 1, rotate: [-8, 5, -4][i] }}
+                transition={{ type: 'spring', stiffness: 380, damping: 13, delay: 0.1 + i * 0.12 }}
+              >
+                {ch}
+              </motion.span>
+            ))}
           </h1>
-          <div className="logo-en">D A I F U G O</div>
-        </motion.div>
+          <div className="logo-en">DAIFUGO</div>
+          <div className="logo-sub">ルールは自由自在！ みんなで遊べる大富豪</div>
+        </div>
         <nav className="title-menu">
           {items.map((it, i) => (
             <motion.button
@@ -182,7 +191,7 @@ export function CpuSetup({ onBack, onStart }: { onBack: () => void; onStart: (c:
             </li>
             {Array.from({ length: settings.cpuCount }, (_, i) => (
               <li key={i}>
-                <span className="avatar-emoji">{AVATARS[(i + 3) % 12]}</span>
+                <span className="avatar-emoji">{AVATARS[(i + 1) % 12]}</span>
                 <span className="sl-name">{CPU_NAMES[i]}</span>
                 <div className="seg sm">
                   {DIFFS.map((d) => (
@@ -442,7 +451,7 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
             <input type="range" min={0} max={1} step={0.05} value={s.sfx} onChange={(e) => updateSettings({ sfx: Number(e.target.value) })} />
           </label>
           <label className="slider">
-            BGM（琴）
+            BGM
             <input type="range" min={0} max={1} step={0.05} value={s.bgm} onChange={(e) => updateSettings({ bgm: Number(e.target.value) })} />
           </label>
           <div className="seg-row">
@@ -493,20 +502,10 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
   );
 }
 
-function BackPreview({ id }: { id: string }) {
-  const s = useSettings();
-  // 一時的に裏面を切り替えて表示する
+function BackPreview({ id }: { id: BackId }) {
   return (
-    <div className={`back-preview ${s.back === id ? '' : ''}`}>
-      <svg viewBox="0 0 200 280" className="card-svg">
-        <rect x="1" y="1" width="198" height="278" rx="14" fill="url(#g-back)" stroke="#c9a649" strokeWidth="2" />
-        <rect x="12" y="12" width="176" height="256" rx="8" fill={`url(#p-${id})`} />
-        <rect x="8" y="8" width="184" height="264" rx="10" fill="none" stroke="url(#g-gold)" strokeWidth="2" />
-        <circle cx="100" cy="140" r="36" fill="var(--back-bg-2)" stroke="url(#g-gold)" strokeWidth="2.5" />
-        <text x="100" y="154" textAnchor="middle" className="back-kanji" fill="url(#g-gold)">
-          富
-        </text>
-      </svg>
+    <div className="back-preview">
+      <CardSvg card={null} back={id} />
     </div>
   );
 }
@@ -609,7 +608,7 @@ export function HowTo({ onBack }: { onBack: () => void }) {
 const FX_DEMO: Record<string, [string, string, Tone]> = {
   revolution: ['革命', 'REVOLUTION ― 強さが逆転！', 'red'],
   counter: ['革命返し', 'COUNTER REVOLUTION', 'blue'],
-  eightCut: ['八切り', '場が流れる！', 'gold'],
+  eightCut: ['8切り', '場が流れる！', 'gold'],
   lock: ['激縛り', '♥ 次は1つ上の数字のみ', 'blue'],
   daifugo: ['大富豪', '小町 が一番乗り！', 'gold'],
   miyako: ['都落ち', '銀次 が大貧民に転落', 'ink'],
