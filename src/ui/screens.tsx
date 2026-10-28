@@ -15,7 +15,7 @@ import { EffectLayer } from './components/EffectLayer';
 import { PlayingCard } from './components/PlayingCard';
 import { RuleEditor } from './components/RuleEditor';
 import { isLite } from './perf';
-import { BACKS, BackId, THEMES, updateSettings, useSettings } from './settings';
+import { BACKS, BackId, DESIGNS, GLASS_LEVELS, THEMES, updateSettings, useSettings } from './settings';
 import { CardSvg } from './components/CardArt';
 import { sfx } from './sound';
 
@@ -45,7 +45,7 @@ export function Title({ go }: { go: (s: Screen) => void }) {
     { s: 'cpu', label: 'CPU対戦', sub: 'コンピューターと遊ぶ', icon: 'cards' },
     { s: 'online', label: 'オンライン対戦', sub: OFFLINE_ONLY ? 'ダウンロード版で遊べます' : '友だちと遊ぶ', icon: 'globe' },
     { s: 'howto', label: '遊び方・ルール', sub: 'はじめての人へ', icon: 'book' },
-    { s: 'settings', label: '設定', sub: '名前・テーマ・音', icon: 'sliders' },
+    { s: 'settings', label: '設定', sub: '名前・デザイン・音', icon: 'sliders' },
   ];
   return (
     <div className="screen title-screen">
@@ -74,14 +74,19 @@ export function Title({ go }: { go: (s: Screen) => void }) {
           <div className="logo-en">DAIFUGO</div>
           <div className="logo-sub">ルールは自由自在！ みんなで遊べる大富豪</div>
         </div>
-        <nav className="title-menu">
+        <motion.nav
+          className="title-menu lg"
+          initial={{ opacity: 0, scale: 0.92, y: 16 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ type: 'spring', bounce: 0.25, duration: 0.6, delay: 0.45 }}
+        >
           {items.map((it, i) => (
             <motion.button
               key={it.s}
-              className={`menu-btn ${OFFLINE_ONLY && it.s === 'online' ? 'is-off' : ''}`}
-              initial={{ opacity: 0, y: 24 }}
+              className={`menu-btn ${i === 0 ? 'is-primary' : ''} ${OFFLINE_ONLY && it.s === 'online' ? 'is-off' : ''}`}
+              initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 + i * 0.1 }}
+              transition={{ type: 'spring', bounce: 0.3, duration: 0.5, delay: 0.55 + i * 0.07 }}
               disabled={OFFLINE_ONLY && it.s === 'online'}
               onClick={() => {
                 sfx('click');
@@ -98,7 +103,7 @@ export function Title({ go }: { go: (s: Screen) => void }) {
               <span className="mb-arrow">›</span>
             </motion.button>
           ))}
-        </nav>
+        </motion.nav>
         <div className="title-foot">
           現在のルール：<b>{preset ? PRESETS.find((p) => p.id === preset)!.name : 'カスタム'}</b>
         </div>
@@ -424,6 +429,34 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
         <section className="panel">
           <h3>プレイヤー</h3>
           <ProfileEditor />
+        </section>
+        <section className="panel">
+          <h3>デザイン</h3>
+          <div className="seg-row">
+            <span>スタイル</span>
+            <div className="seg sm">
+              {DESIGNS.map((d) => (
+                <button key={d.id} className={s.design === d.id ? 'on' : ''} onClick={() => updateSettings({ design: d.id })}>
+                  {d.name}
+                </button>
+              ))}
+            </div>
+          </div>
+          {s.design === 'glass' && (
+            <>
+              <div className="seg-row">
+                <span>ガラスの濃さ</span>
+                <div className="seg sm">
+                  {GLASS_LEVELS.map((g) => (
+                    <button key={g.id} className={s.glass === g.id ? 'on' : ''} onClick={() => updateSettings({ glass: g.id })}>
+                      {g.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <p className="muted small">文字が読みにくいときは「濃いめ」か「不透明」にしてください。軽量モードでは、ぼかしを使わない半透明の表示になります。</p>
+            </>
+          )}
         </section>
         <section className="panel">
           <h3>テーマ</h3>

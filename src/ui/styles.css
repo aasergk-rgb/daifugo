@@ -1937,6 +1937,11 @@ input:focus {
   gap: 8px;
   align-items: center;
 }
+.ab-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
 .btn.pass {
   min-width: 96px;
 }

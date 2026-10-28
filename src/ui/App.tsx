@@ -6,6 +6,7 @@ import { FxCanvas, setReduceMotion } from './components/FxCanvas';
 import { Lobby } from './components/Lobby';
 import { Table } from './components/Table';
 import { CpuSetup, Gallery, HowTo, OnlineScreen, SettingsScreen, Title } from './screens';
+import { startGlass } from './glass';
 import { onAutoDowngrade, setGraphicsMode, startFpsMonitor, useLite } from './perf';
 import { useSettings } from './settings';
 import { setBgm, unlockAudio } from './sound';
@@ -27,13 +28,16 @@ export function App() {
       setTimeout(() => setLiteNotice(false), 4500);
     });
     startFpsMonitor();
+    startGlass();
   }, []);
 
   useEffect(() => {
     document.documentElement.dataset.skin = settings.theme;
+    document.documentElement.dataset.ui = settings.design;
+    document.documentElement.dataset.glass = settings.glass;
     setReduceMotion(settings.reduceMotion);
     document.documentElement.classList.toggle('reduce-motion', settings.reduceMotion);
-  }, [settings.theme, settings.reduceMotion]);
+  }, [settings.theme, settings.design, settings.glass, settings.reduceMotion]);
 
   // 最初の操作で音を有効化
   useEffect(() => {
@@ -68,7 +72,14 @@ export function App() {
       {/* 対戦中は背景の粒を止める（演出の粒は出る） */}
       <FxCanvas key={lite ? 'lite' : 'full'} theme={settings.theme} ambient={screen !== 'play'} />
       <AnimatePresence mode="wait">
-        <motion.div key={screen} className="screen-wrap" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
+        <motion.div
+          key={screen}
+          className="screen-wrap"
+          initial={{ opacity: 0, scale: 0.985 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 1.01 }}
+          transition={{ type: 'spring', bounce: 0, duration: 0.38 }}
+        >
           {screen === 'title' && <Title go={setScreen} />}
           {screen === 'cpu' && <CpuSetup onBack={() => setScreen('title')} onStart={start} />}
           {screen === 'online' && <OnlineScreen onBack={() => setScreen('title')} onStart={start} />}
@@ -80,7 +91,7 @@ export function App() {
       </AnimatePresence>
       <AnimatePresence>
         {liteNotice && (
-          <motion.div className="lite-notice" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+          <motion.div className="lite-notice lg" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
             動作が重いため、軽量モードに切り替えました（設定で変更できます）
           </motion.div>
         )}
@@ -106,7 +117,7 @@ function PlayScreen({ client, onExit }: { client: GameClient; onExit: () => void
   return (
     <>
       {snap.reconnecting && !snap.closed && (
-        <div className="reconnect-banner" role="status">
+        <div className="reconnect-banner lg" role="status">
           <span className="spinner" />
           接続が切れました。再接続しています…（その間はCPUが代わりに打ちます）
         </div>
@@ -115,7 +126,7 @@ function PlayScreen({ client, onExit }: { client: GameClient; onExit: () => void
       <AnimatePresence>
         {confirm && (
           <motion.div className="modal-back" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <motion.div className="modal" initial={{ scale: 0.9 }} animate={{ scale: 1 }}>
+            <motion.div className="modal lg" initial={{ scale: 0.86, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.3, duration: 0.45 }}>
               <h2>対戦をやめますか？</h2>
               <p>{local ? '現在の対戦は破棄されます。' : client.conn.mode === 'p2p' && snap.room?.seats.find((s) => s.id === snap.seatId)?.isHost ? 'あなたはホストです。退出するとルームが解散します。' : '退出すると、あなたの席はCPUが代わりに打ちます。'}</p>
               <div className="modal-actions">

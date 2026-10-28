@@ -1,7 +1,7 @@
 // ルール設定画面（プリセット + 全ルールを自由に変更 + カスタム保存）
 
 import { motion } from 'framer-motion';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { rankLabel } from '../../engine/cards';
 import { EFFECT_INFO, EFFECT_KEYS, EffectKey, effectDisplayName, PRESETS, RuleConfig, cloneConfig, matchPreset, normalizeConfig, ruleBadges } from '../../engine/rules';
@@ -184,7 +184,8 @@ export function RuleEditor({ value, onChange, onClose, title = 'ルール設定'
   const sectionTop = (box: HTMLElement, id: string) => {
     const el = document.getElementById(`rs-${id}`);
     if (!el) return 0;
-    const offset = (stickyRef.current?.offsetHeight ?? 0) + 10;
+    const sticky = stickyRef.current;
+    const offset = (sticky ? sticky.offsetHeight + (parseFloat(getComputedStyle(sticky).top) || 0) : 0) + 10;
     return el.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop - offset;
   };
 
@@ -215,6 +216,19 @@ export function RuleEditor({ value, onChange, onClose, title = 'ルール設定'
     nav.scrollTo({ left: btn.offsetLeft - (nav.clientWidth - btn.offsetWidth) / 2, behavior: 'smooth' });
   }, [section]);
 
+  const [pill, setPill] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  useLayoutEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const measure = () => {
+      const btn = nav.querySelector<HTMLElement>('button.on');
+      if (btn) setPill({ x: btn.offsetLeft, y: btn.offsetTop, width: btn.offsetWidth, height: btn.offsetHeight });
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [section]);
+
   // OS のアニメーション設定に左右されないよう自前でなめらかにスクロールする
   const scrollTo = (id: string) => {
     const box = scrollRef.current;
@@ -236,7 +250,13 @@ export function RuleEditor({ value, onChange, onClose, title = 'ルール設定'
 
   // 親要素の backdrop-filter に閉じ込められないよう body 直下に描画する
   return createPortal(
-    <motion.div className="rule-editor" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 30 }}>
+    <motion.div
+      className="rule-editor"
+      initial={{ opacity: 0, y: 40, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 40, scale: 0.98 }}
+      transition={{ type: 'spring', bounce: 0.15, duration: 0.5 }}
+    >
       <header className="re-head">
         <button className="btn ghost sm" onClick={onClose}>
           ← 戻る
@@ -274,7 +294,9 @@ export function RuleEditor({ value, onChange, onClose, title = 'ルール設定'
       </div>
 
       <div className="re-body">
-        <nav className="re-nav" ref={navRef}>
+        <nav className="re-nav lg" ref={navRef}>
+          {/* 選択中の印。項目のあいだをばねで滑って移動する */}
+          {pill && <motion.span className="re-nav-pill" initial={false} animate={pill} transition={{ type: 'spring', bounce: 0.25, duration: 0.45 }} />}
           {SECTIONS.map((s) => (
             <button key={s.id} className={section === s.id ? 'on' : ''} onClick={() => scrollTo(s.id)}>
               <Icon name={s.icon} size={18} />
@@ -283,7 +305,7 @@ export function RuleEditor({ value, onChange, onClose, title = 'ルール設定'
           ))}
         </nav>
         <div className="re-sections" ref={scrollRef}>
-          <div className="re-current" ref={stickyRef}>
+          <div className="re-current lg" ref={stickyRef}>
             <b>{preset ? PRESETS.find((p) => p.id === preset)!.name : custom ? custom.name : 'カスタム'}</b>
             <div className="badges">
               {ruleBadges(cfg).map((b) => (

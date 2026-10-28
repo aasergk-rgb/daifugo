@@ -1,0 +1,880 @@
+/* ═══════════════════════════════════════════════════════════
+   Liquid Glass（data-ui="glass" のときだけ効く）
+   - ガラスにするのは操作の層（バー・ドック・チップ・メニュー・シート）だけ。
+     カード・席・場・設定の各行はコンテンツなので、くっきり不透明のまま。
+   - ガラスの上にガラスは重ねない。ガラスの中のボタンは色の塗り・半透明で表す。
+   - 色付きは主役のボタン（出す・決定・CPU対戦）だけ。
+   ═══════════════════════════════════════════════════════════ */
+
+@property --lg-x {
+  syntax: '<percentage>';
+  inherits: true;
+  initial-value: 30%;
+}
+@property --lg-y {
+  syntax: '<percentage>';
+  inherits: true;
+  initial-value: 0%;
+}
+
+/* ポップ表示では使わない部品 */
+.re-nav-pill {
+  display: none;
+}
+
+[data-ui='glass'] {
+  --g-rgb: 255, 255, 255;
+  --g-base: 0.22;
+  --g-blur: 8px;
+  --g-ink: #121633;
+  --g-sub: #4b5072;
+  --g-spec: 0.45;
+  --g-shadow: 0 8px 28px rgba(14, 22, 70, 0.16), 0 1px 3px rgba(14, 22, 70, 0.12);
+  --tint: #ffc93c;
+  --tint-ink: #2a1d00;
+  --soft: 0 1px 2px rgba(20, 20, 60, 0.06), 0 8px 24px rgba(20, 20, 60, 0.08);
+  --jelly: cubic-bezier(0.3, 1.6, 0.4, 1);
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --g-a: var(--g-base);
+}
+[data-ui='glass'][data-glass='clear'] {
+  --g-base: 0.08;
+  --g-blur: 3px;
+}
+[data-ui='glass'][data-glass='dense'] {
+  --g-base: 0.55;
+  --g-blur: 18px;
+  --g-spec: 0.3;
+}
+[data-ui='glass'][data-glass='opaque'] {
+  --g-base: 0.9;
+  --g-blur: 24px;
+  --g-spec: 0.18;
+}
+[data-ui='glass'][data-skin='night'] {
+  --g-rgb: 44, 46, 88;
+  --g-ink: #f4f3ff;
+  --g-sub: #c2c1e6;
+  --g-spec: 0.2;
+  --g-shadow: 0 8px 28px rgba(0, 0, 0, 0.35), 0 1px 3px rgba(0, 0, 0, 0.3);
+  --soft: 0 1px 2px rgba(0, 0, 0, 0.2), 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+/* ── 背景：ガラスが色を拾えるよう、やわらかい色だまりを置く（動かない） ── */
+[data-ui='glass'] .bg-layer,
+[data-ui='glass'] .rule-editor {
+  background:
+    radial-gradient(60vmax 40vmax at 0% 100%, color-mix(in srgb, var(--pink) 22%, transparent), transparent 70%),
+    radial-gradient(55vmax 38vmax at 100% 0%, color-mix(in srgb, var(--yellow) 26%, transparent), transparent 70%),
+    radial-gradient(50vmax 40vmax at 100% 90%, color-mix(in srgb, var(--blue) 16%, transparent), transparent 70%),
+    var(--bg);
+}
+
+/* ═════════ ガラスの素材 ═════════ */
+[data-ui='glass'] .lg,
+[data-ui='glass'] .btn:not(.ghost),
+[data-ui='glass'] .icon-btn,
+[data-ui='glass'] .screen-head > .btn.ghost,
+[data-ui='glass'] .re-head > .btn.ghost {
+  isolation: isolate;
+  border: none;
+  color: var(--g-ink);
+  background-color: rgba(var(--g-rgb), var(--g-a));
+  -webkit-backdrop-filter: blur(var(--g-blur)) saturate(185%) brightness(1.05);
+  backdrop-filter: blur(var(--g-blur)) saturate(185%) brightness(1.05);
+  box-shadow: var(--g-shadow);
+}
+/* 光の反射：ポインターの方向に寄る */
+[data-ui='glass'] .lg::before,
+[data-ui='glass'] .btn:not(.ghost)::before,
+[data-ui='glass'] .icon-btn::before,
+[data-ui='glass'] .screen-head > .btn.ghost::before,
+[data-ui='glass'] .re-head > .btn.ghost::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: -1;
+  opacity: var(--g-spec);
+  background:
+    radial-gradient(130% 120% at var(--lg-x) var(--lg-y), rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0) 58%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 45%);
+  transition: --lg-x 0.9s var(--ease-out), --lg-y 0.9s var(--ease-out);
+}
+/* ふちの屈折リング */
+[data-ui='glass'] .lg::after,
+[data-ui='glass'] .btn:not(.ghost)::after,
+[data-ui='glass'] .icon-btn::after,
+[data-ui='glass'] .screen-head > .btn.ghost::after,
+[data-ui='glass'] .re-head > .btn.ghost::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: -1;
+  padding: 1.25px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.95),
+    rgba(255, 255, 255, 0.14) 35%,
+    rgba(255, 255, 255, 0.05) 62%,
+    rgba(255, 255, 255, 0.7)
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+[data-ui='glass'][data-skin='night'] .lg::after,
+[data-ui='glass'][data-skin='night'] .btn:not(.ghost)::after,
+[data-ui='glass'][data-skin='night'] .icon-btn::after {
+  opacity: 0.45;
+}
+
+/* 静的な要素は、反射・ふちの基準になるよう relative にする */
+[data-ui='glass'] :is(.tb-left, .tb-right, .strength, .dir-chip, .lock-chip, .ab-left, .ab-right, .title-menu, .re-nav, .modal, .toast, .fx-sub, .btn, .icon-btn, .menu-btn, .re-nav button) {
+  position: relative;
+}
+
+/* 大きいガラスほど厚く（不透明に）する */
+[data-ui='glass'] :is(.side-panel, .modal) {
+  --g-a: max(0.66, var(--g-base));
+}
+[data-ui='glass'] :is(.menu-pop, .stamp-palette, .re-nav, .title-menu) {
+  --g-a: max(0.4, var(--g-base));
+}
+/* 文字が流れていく上に乗るバーは、すりガラスを強めにして読みやすくする */
+[data-ui='glass'] .re-current {
+  --g-a: max(0.62, var(--g-base));
+  --g-blur: 22px;
+}
+[data-ui='glass'] :is(.toast, .your-turn, .fx-sub, .lite-notice) {
+  --g-a: max(0.5, var(--g-base));
+}
+
+/* ── ガラスの中のボタン：ガラスを重ねず、半透明の塗りにする ── */
+[data-ui='glass'] .lg :is(.btn, .icon-btn) {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+  background-color: rgba(var(--g-rgb), 0.32);
+}
+[data-ui='glass'] .lg :is(.btn, .icon-btn)::before,
+[data-ui='glass'] .lg :is(.btn, .icon-btn)::after {
+  display: none;
+}
+[data-ui='glass'] .lg .icon-btn,
+[data-ui='glass'] .lg .btn.ghost {
+  background-color: transparent;
+}
+
+/* ── 色付き（主役だけ） ── */
+[data-ui='glass'] .btn.primary {
+  background-color: color-mix(in srgb, var(--tint) 84%, transparent);
+  color: var(--tint-ink);
+}
+[data-ui='glass'] .lg .btn.primary {
+  background-color: color-mix(in srgb, var(--tint) 88%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 0 18px color-mix(in srgb, var(--tint) 40%, transparent);
+}
+[data-ui='glass'] .btn.danger,
+[data-ui='glass'] .btn.primary.danger {
+  background-color: color-mix(in srgb, var(--pink) 86%, transparent);
+  color: #fff;
+}
+[data-ui='glass'] .btn:disabled {
+  opacity: 0.42;
+}
+[data-ui='glass'] .lg .btn.primary:disabled {
+  box-shadow: none;
+}
+
+/* ═════════ 押したときの動き ═════════
+   押すと少しふくらんで、押した点から内側に光が広がる。
+   離すとゼリーのように弾んで戻る。 */
+[data-ui='glass'] :is(.btn, .icon-btn, .menu-btn, .re-nav button, .seg button, .stamp-palette button, .menu-pop button) {
+  transition:
+    transform 0.5s var(--jelly),
+    background-color 0.25s,
+    box-shadow 0.3s,
+    opacity 0.2s;
+}
+[data-ui='glass'] :is(.btn, .icon-btn, .menu-btn, .stamp-palette button, .menu-pop button):active:not(:disabled) {
+  transform: scale(1.07);
+  transition-duration: 0.14s;
+  background-image: radial-gradient(circle at var(--px, 50%) var(--py, 50%), rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0) 70%);
+}
+[data-ui='glass'] :is(.btn:not(.ghost), .icon-btn):active:not(:disabled) {
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.16), 0 10px 30px rgba(14, 22, 70, 0.22);
+}
+[data-ui='glass'] .btn:hover:not(:disabled) {
+  transform: none;
+  box-shadow: var(--g-shadow);
+}
+[data-ui='glass'] .btn:active:not(:disabled) {
+  transform: scale(1.07);
+}
+[data-ui='glass'] .lg .btn:hover:not(:disabled),
+[data-ui='glass'] .lg .icon-btn:hover {
+  box-shadow: none;
+  background-color: rgba(var(--g-rgb), 0.45);
+}
+[data-ui='glass'] .lg .btn.primary:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--tint) 96%, transparent);
+}
+[data-ui='glass'] .btn.ghost {
+  border: none;
+}
+[data-ui='glass'] .btn.ghost:hover:not(:disabled) {
+  background: rgba(var(--g-rgb), 0.35);
+}
+
+/* ═════════ 共通部品 ═════════ */
+[data-ui='glass'] .icon-btn {
+  width: 42px;
+  height: 42px;
+}
+[data-ui='glass'] .seg {
+  background: rgba(120, 120, 160, 0.14);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 2px;
+}
+[data-ui='glass'] .seg button {
+  border: none;
+  border-radius: 999px;
+}
+[data-ui='glass'] .seg button.on {
+  background: #fff;
+  color: #121633;
+  border: none;
+  box-shadow: 0 1px 2px rgba(20, 20, 60, 0.1), 0 3px 10px rgba(20, 20, 60, 0.12);
+}
+[data-ui='glass'] .seg button.d-oni.on {
+  background: var(--pink);
+  color: #fff;
+}
+[data-ui='glass'] .switch {
+  width: 58px;
+  height: 34px;
+  border: none;
+  background: rgba(120, 120, 160, 0.26);
+  transition: background 0.25s;
+}
+[data-ui='glass'] .switch i {
+  top: 3px;
+  left: 3px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 14px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18), 0 0 0 0.5px rgba(0, 0, 0, 0.04);
+  transition:
+    transform 0.45s var(--jelly),
+    width 0.3s var(--ease-out),
+    background-color 0.2s;
+}
+[data-ui='glass'] .switch.on {
+  background: var(--green);
+}
+[data-ui='glass'] .switch.on i {
+  transform: translateX(24px);
+}
+/* 押している間はつまみが横に伸び、ガラスのように透ける */
+[data-ui='glass'] .switch:active:not(:disabled) i {
+  width: 36px;
+  background-color: rgba(255, 255, 255, 0.82);
+}
+[data-ui='glass'] .switch.on:active:not(:disabled) i {
+  transform: translateX(16px);
+}
+[data-ui='glass'] .stepper {
+  border: none;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1.5px var(--hair);
+}
+[data-ui='glass'] .stepper button {
+  border-radius: 999px;
+  background: rgba(120, 120, 160, 0.14);
+}
+[data-ui='glass'] select,
+[data-ui='glass'] input[type='text'],
+[data-ui='glass'] input:not([type]) {
+  border: 1.5px solid rgba(120, 120, 160, 0.28);
+  background: var(--surface);
+}
+[data-ui='glass'] input:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--blue) 22%, transparent);
+}
+[data-ui='glass'] :focus-visible {
+  outline: 3px solid var(--blue);
+}
+[data-ui='glass'] .panel {
+  border: none;
+  border-radius: 28px;
+  background: var(--surface);
+  box-shadow: var(--soft);
+}
+[data-ui='glass'] .panel h3::before {
+  border: none;
+  width: 10px;
+  height: 10px;
+}
+[data-ui='glass'] .error-box {
+  border: none;
+  box-shadow: inset 0 0 0 1.5px var(--pink);
+}
+[data-ui='glass'] .spinner {
+  border-color: rgba(120, 120, 160, 0.2);
+  border-top-color: var(--g-ink);
+}
+
+/* 画面上部：浮いた戻るボタンと題名。スクロールするとコンテンツが溶けて消える */
+[data-ui='glass'] .screen-head {
+  background: transparent;
+  isolation: isolate;
+}
+[data-ui='glass'] .screen-head::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 -28px;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg) 92%, transparent) 30%, transparent);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  -webkit-mask-image: linear-gradient(180deg, #000 45%, transparent);
+  mask-image: linear-gradient(180deg, #000 45%, transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+[data-ui='glass'] .screen.is-scrolled > .screen-head::before {
+  opacity: 1;
+}
+[data-ui='glass'] .screen-head > .btn.ghost,
+[data-ui='glass'] .re-head > .btn.ghost {
+  padding: 0.5em 1.1em;
+}
+[data-ui='glass'] .setup-actions,
+[data-ui='glass'] .lobby-actions {
+  background: linear-gradient(0deg, color-mix(in srgb, var(--bg) 80%, transparent) 25%, transparent);
+}
+
+/* ═════════ カード（コンテンツ：くっきり、やわらかい影） ═════════ */
+[data-ui='glass'] .pcard {
+  box-shadow: 0 1px 2px rgba(14, 22, 70, 0.16), 0 6px 14px rgba(14, 22, 70, 0.16);
+}
+[data-ui='glass'] .pcard.is-playable {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--yellow) 90%, transparent), 0 6px 14px rgba(14, 22, 70, 0.16);
+}
+[data-ui='glass'] .pcard.is-selected {
+  box-shadow: 0 0 0 3.5px var(--pink), 0 14px 26px rgba(14, 22, 70, 0.28);
+}
+[data-ui='glass'] .field-card.pcard {
+  box-shadow: 0 2px 4px rgba(14, 22, 70, 0.2), 0 12px 26px rgba(14, 22, 70, 0.26);
+}
+[data-ui='glass'] .pcard-new {
+  border: none;
+}
+
+/* ═════════ タイトル ═════════ */
+[data-ui='glass'] .tile {
+  border: none;
+  box-shadow: 0 0.12em 0.32em color-mix(in srgb, currentColor 0%, rgba(30, 20, 80, 0.22));
+}
+[data-ui='glass'] .tile.t0 {
+  box-shadow: 0 0.12em 0.32em color-mix(in srgb, var(--pink) 45%, transparent);
+}
+[data-ui='glass'] .tile.t1 {
+  box-shadow: 0 0.12em 0.32em color-mix(in srgb, var(--yellow) 55%, transparent);
+}
+[data-ui='glass'] .tile.t2 {
+  box-shadow: 0 0.12em 0.32em color-mix(in srgb, var(--blue) 45%, transparent);
+}
+[data-ui='glass'] .title-menu {
+  gap: 2px;
+  padding: 8px;
+  border-radius: 32px;
+  width: min(380px, 90vw);
+}
+[data-ui='glass'] .menu-btn {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 24px;
+  padding: 9px 14px 9px 9px;
+  color: var(--g-ink);
+}
+[data-ui='glass'] .menu-btn:hover:not(:disabled) {
+  transform: none;
+  box-shadow: none;
+  background: rgba(var(--g-rgb), 0.4);
+}
+[data-ui='glass'] .menu-btn:active:not(:disabled) {
+  transform: scale(1.04);
+  box-shadow: none;
+}
+[data-ui='glass'] .menu-btn.is-primary,
+[data-ui='glass'] .menu-btn.is-primary:hover:not(:disabled) {
+  background-color: color-mix(in srgb, var(--tint) 86%, transparent);
+  color: var(--tint-ink);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+[data-ui='glass'] .mb-icon,
+[data-ui='glass'] .title-menu .menu-btn:nth-child(n) .mb-icon {
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  color: inherit;
+  width: 44px;
+  height: 44px;
+}
+[data-ui='glass'] .mb-text small {
+  color: var(--g-sub);
+}
+[data-ui='glass'] .menu-btn.is-primary .mb-text small {
+  color: inherit;
+  opacity: 0.72;
+}
+[data-ui='glass'] .mb-arrow {
+  color: currentColor;
+  opacity: 0.4;
+}
+
+/* ═════════ 設定系 ═════════ */
+[data-ui='glass'] :is(.cpu-list li, .seat-list li) {
+  border: none;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1.5px var(--hair);
+}
+[data-ui='glass'] :is(.cpu-list li.is-me, .seat-list li.is-me) {
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--yellow) 80%, transparent);
+}
+[data-ui='glass'] .avatar-emoji {
+  border: 2.5px solid #fff;
+  box-shadow: 0 2px 6px rgba(14, 22, 70, 0.16);
+}
+[data-ui='glass'] .preset-chip,
+[data-ui='glass'] .preset-card {
+  border: none;
+  box-shadow: var(--soft), inset 0 0 0 1.5px var(--hair);
+}
+[data-ui='glass'] .preset-chip.on,
+[data-ui='glass'] .preset-card.on {
+  box-shadow: inset 0 0 0 2.5px var(--yellow), var(--soft);
+}
+[data-ui='glass'] .preset-chip.edit {
+  box-shadow: inset 0 0 0 1.5px var(--ink-faint);
+}
+[data-ui='glass'] .pc-del {
+  border: none;
+  box-shadow: var(--soft);
+}
+[data-ui='glass'] .theme-card,
+[data-ui='glass'] .avatar-grid button {
+  border-color: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--hair);
+}
+[data-ui='glass'] .theme-card.on,
+[data-ui='glass'] .avatar-grid button.on {
+  border-color: transparent;
+  box-shadow: inset 0 0 0 2.5px var(--line);
+}
+[data-ui='glass'] .th-swatch {
+  border: none;
+}
+
+/* ═════════ ルール設定 ═════════ */
+[data-ui='glass'] .re-head {
+  border-bottom: none;
+}
+[data-ui='glass'] .re-body {
+  grid-template-columns: 220px 1fr;
+  gap: 8px;
+  padding: 0 12px calc(12px + env(safe-area-inset-bottom, 0px));
+}
+[data-ui='glass'] .re-nav {
+  border-right: none;
+  border-radius: 30px;
+  padding: 10px;
+  gap: 2px;
+}
+[data-ui='glass'] .re-nav button {
+  isolation: isolate;
+  border-radius: 999px;
+  color: var(--g-sub);
+  padding: 10px 14px;
+}
+[data-ui='glass'] .re-nav button.on,
+[data-ui='glass'] .re-nav button:hover {
+  background: transparent;
+  color: var(--g-ink);
+}
+[data-ui='glass'] .re-nav button:active {
+  transform: scale(0.97);
+}
+[data-ui='glass'] .re-nav button {
+  z-index: 1;
+}
+[data-ui='glass'] .re-nav-pill {
+  display: block;
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 1px 2px rgba(20, 20, 60, 0.1), 0 4px 12px rgba(20, 20, 60, 0.08);
+}
+[data-ui='glass'][data-skin='night'] .re-nav-pill {
+  background: rgba(255, 255, 255, 0.16);
+}
+/* 固定バーはスクロール領域の上端にぴったり付く。
+   ※ スクロール領域に mask を掛けると、その中のガラスがぼかしを失うので使わない */
+[data-ui='glass'] .re-sections {
+  padding: 0 14px 80px;
+}
+[data-ui='glass'] .re-current {
+  top: 0;
+  margin: 12px 0 16px;
+  padding: 12px 18px;
+  border-bottom: none;
+  border-radius: 26px;
+}
+[data-ui='glass'] .re-current .badge {
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--g-ink);
+}
+[data-ui='glass'] .re-section h3,
+[data-ui='glass'] .re-row {
+  border-bottom-width: 1.5px;
+}
+[data-ui='glass'] .eff-mark {
+  border: none;
+}
+@media (max-width: 720px) {
+  [data-ui='glass'] .re-body {
+    grid-template-columns: 1fr;
+    padding: 0 8px;
+  }
+  [data-ui='glass'] .re-nav {
+    border-bottom: none;
+    border-radius: 999px;
+    padding: 5px;
+  }
+  [data-ui='glass'] .re-nav button {
+    padding: 7px 12px;
+  }
+  [data-ui='glass'] .re-sections {
+    padding: 0 8px 80px;
+  }
+  [data-ui='glass'] .re-current {
+    margin: 10px 0 12px;
+    padding: 10px 14px;
+  }
+}
+
+/* ═════════ 対戦画面 ═════════ */
+[data-ui='glass'] .topbar {
+  padding-top: calc(10px + env(safe-area-inset-top, 0px));
+  align-items: flex-start;
+}
+[data-ui='glass'] .tb-left {
+  border-radius: 999px;
+  padding: 4px 14px 4px 4px;
+  flex-wrap: nowrap;
+}
+[data-ui='glass'] .tb-right {
+  border-radius: 999px;
+  padding: 3px;
+  gap: 0;
+}
+[data-ui='glass'] .tb-logo {
+  border: none;
+  box-shadow: none;
+  border-radius: 999px;
+  padding: 3px 12px;
+  font-size: 0.95rem;
+  background: color-mix(in srgb, var(--pink) 92%, transparent);
+}
+[data-ui='glass'] .tb-game small {
+  color: var(--g-sub);
+}
+[data-ui='glass'] .tb-set,
+[data-ui='glass'] .tb-room {
+  background: rgba(var(--g-rgb), 0.4);
+}
+
+/* 卓（コンテンツ）：輪郭線をやめ、やわらかい影と卓上の明かりで立体感を出す */
+[data-ui='glass'] .felt {
+  border: none;
+  border-radius: 46px;
+  background-image: radial-gradient(70% 60% at 50% 42%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 70%);
+  box-shadow:
+    0 22px 50px color-mix(in srgb, var(--table) 35%, rgba(14, 22, 70, 0.25)),
+    inset 0 2px 0 rgba(255, 255, 255, 0.28),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+[data-ui='glass'] .hud {
+  top: 10px;
+}
+[data-ui='glass'] :is(.strength, .dir-chip, .lock-chip) {
+  padding: 5px 13px;
+  font-size: 0.78rem;
+}
+[data-ui='glass'] .strength.rev {
+  background-color: color-mix(in srgb, var(--pink) 82%, transparent);
+  color: #fff;
+}
+[data-ui='glass'] .lock-chip {
+  color: var(--g-ink);
+}
+[data-ui='glass'] .lock-chip .icon {
+  color: var(--blue);
+}
+[data-ui='glass'] .mini-back {
+  border-color: #fff;
+  box-shadow: 0 1px 3px rgba(14, 22, 70, 0.25);
+}
+[data-ui='glass'] .seat-count {
+  border: none;
+  box-shadow: 0 2px 6px rgba(14, 22, 70, 0.25);
+}
+[data-ui='glass'] .seat-avatar .avatar-emoji {
+  border: 3px solid #fff;
+  box-shadow: 0 4px 12px rgba(14, 22, 70, 0.28);
+}
+[data-ui='glass'] .seat.is-active .avatar-emoji {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--yellow) 80%, transparent), 0 4px 16px rgba(14, 22, 70, 0.3);
+}
+[data-ui='glass'] .seat-plate {
+  border: none;
+  background: rgba(8, 20, 70, 0.42);
+  color: #fff;
+  border-radius: 14px;
+}
+[data-ui='glass'] .turn-ring {
+  background: #fff;
+  filter: drop-shadow(0 2px 3px rgba(14, 22, 70, 0.3));
+}
+[data-ui='glass'] .pass-tag {
+  border: none;
+  background: rgba(8, 20, 70, 0.72);
+  box-shadow: 0 4px 12px rgba(14, 22, 70, 0.3);
+}
+[data-ui='glass'] .rank-stamp {
+  border: none;
+  box-shadow: 0 4px 14px rgba(14, 22, 70, 0.3);
+}
+[data-ui='glass'] .bubble {
+  border: none;
+  box-shadow: 0 4px 14px rgba(14, 22, 70, 0.22);
+}
+[data-ui='glass'] .bubble::after {
+  border: none;
+}
+[data-ui='glass'] .fl-combo {
+  border: none;
+  box-shadow: 0 3px 10px rgba(14, 22, 70, 0.22);
+}
+
+[data-ui='glass'] .your-turn {
+  border: none;
+  color: var(--g-ink);
+  padding: 7px 20px;
+}
+
+/* 手札の下：道具のカプセルと、出す・パスのカプセル（形が変わるとなめらかに伸び縮みする） */
+[data-ui='glass'] .action-bar {
+  padding: 6px 2px 4px;
+  align-items: flex-end;
+}
+[data-ui='glass'] .ab-left,
+[data-ui='glass'] .ab-right {
+  border-radius: 999px;
+  padding: 5px;
+  gap: 2px;
+}
+[data-ui='glass'] .ab-right {
+  margin-left: auto;
+}
+[data-ui='glass'] .ab-group {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+[data-ui='glass'] .ab-left .btn {
+  padding: 0.5em 0.95em;
+}
+[data-ui='glass'] .btn.pass,
+[data-ui='glass'] .btn.play {
+  padding: 0.62em 1.4em;
+}
+[data-ui='glass'] .stamp-palette {
+  border: none;
+  border-radius: 26px;
+  padding: 8px;
+}
+[data-ui='glass'] .stamp-palette button {
+  background: rgba(var(--g-rgb), 0.4);
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 0.95rem;
+}
+[data-ui='glass'] .stamp-palette button:hover {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+/* ═════════ 演出 ═════════ */
+[data-ui='glass'] .fx-sub {
+  border: none;
+  color: var(--g-ink);
+  background-color: rgba(var(--g-rgb), var(--g-a));
+}
+
+/* ═════════ モーダル・パネル ═════════ */
+[data-ui='glass'] .modal-back {
+  background: rgba(16, 18, 52, 0.26);
+}
+[data-ui='glass'] .modal {
+  border: none;
+  border-radius: 34px;
+  box-shadow: 0 30px 80px rgba(14, 22, 70, 0.3), 0 2px 8px rgba(14, 22, 70, 0.12);
+}
+[data-ui='glass'] .res-table tr.is-me td {
+  background: rgba(255, 201, 60, 0.28);
+}
+[data-ui='glass'] .pod-avatar {
+  border: 3px solid #fff;
+  box-shadow: 0 4px 14px rgba(14, 22, 70, 0.22);
+}
+[data-ui='glass'] .pod-block {
+  border: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+[data-ui='glass'] .bomber .rank-grid button {
+  border: none;
+  box-shadow: 0 2px 8px rgba(14, 22, 70, 0.16), inset 0 0 0 1.5px var(--hair);
+}
+[data-ui='glass'] .side-panel {
+  top: calc(10px + env(safe-area-inset-top, 0px));
+  right: 10px;
+  bottom: 10px;
+  width: min(370px, calc(100vw - 20px));
+  border: none;
+  border-radius: 32px;
+  padding: 18px 20px 18px;
+}
+[data-ui='glass'] .side-panel .close {
+  border: none;
+  background: rgba(var(--g-rgb), 0.5);
+  top: 12px;
+}
+[data-ui='glass'] .log-list li {
+  background: rgba(var(--g-rgb), 0.45);
+}
+[data-ui='glass'] .menu-pop {
+  border: none;
+  border-radius: 28px;
+  padding: 6px;
+  top: calc(64px + env(safe-area-inset-top, 0px));
+}
+[data-ui='glass'] .menu-pop button {
+  border-radius: 22px;
+  color: var(--g-ink);
+}
+[data-ui='glass'] .menu-pop button:hover {
+  background: rgba(var(--g-rgb), 0.5);
+}
+[data-ui='glass'] .menu-pop button.danger {
+  color: #e0245a;
+}
+[data-ui='glass'] .toast {
+  border: none;
+  border-radius: 999px;
+  color: var(--g-ink);
+}
+[data-ui='glass'] .toast.tone-gold {
+  background-color: color-mix(in srgb, var(--yellow) 40%, rgba(var(--g-rgb), var(--g-a)));
+}
+[data-ui='glass'] .toast.tone-red {
+  background-color: color-mix(in srgb, var(--pink) 30%, rgba(var(--g-rgb), var(--g-a)));
+}
+[data-ui='glass'] .reconnect-banner,
+[data-ui='glass'] .lite-notice {
+  border: none;
+  border-radius: 999px;
+}
+[data-ui='glass'] .reconnect-banner {
+  background-color: color-mix(in srgb, var(--pink) 85%, transparent);
+  color: #fff;
+}
+
+@media (max-width: 640px) {
+  [data-ui='glass'] .icon-btn {
+    width: 38px;
+    height: 38px;
+  }
+  [data-ui='glass'] .felt {
+    border-radius: 34px;
+  }
+  [data-ui='glass'] .tb-left {
+    padding-left: 12px;
+  }
+  [data-ui='glass'] .ab-left .btn {
+    padding: 0.45em 0.6em;
+  }
+  [data-ui='glass'] .btn.pass,
+  [data-ui='glass'] .btn.play {
+    padding: 0.55em 1.05em;
+  }
+}
+
+/* ═════════ 見やすさの設定 ═════════ */
+/* 軽量モード：ぼかし・反射なしの半透明ベタ塗り */
+.lite[data-ui='glass'] :is(.lg, .btn, .icon-btn, .screen-head > .btn.ghost, .re-head > .btn.ghost) {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  --g-a: max(0.84, var(--g-base));
+}
+.lite[data-ui='glass'] :is(.lg, .btn, .icon-btn, .screen-head > .btn.ghost, .re-head > .btn.ghost)::before {
+  display: none;
+}
+.lite[data-ui='glass'] .screen-head::before {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.lite[data-ui='glass'] .btn.primary {
+  background-color: var(--tint);
+}
+/* OS の「透明度を下げる」：すりガラスにして後ろを隠す */
+@media (prefers-reduced-transparency: reduce) {
+  [data-ui='glass'] {
+    --g-base: 0.88;
+    --g-blur: 24px;
+    --g-spec: 0.15;
+  }
+}
+/* OS の「コントラストを上げる」：濃い縁取り */
+@media (prefers-contrast: more) {
+  [data-ui='glass'] :is(.lg, .btn, .icon-btn) {
+    outline: 1.5px solid var(--g-ink);
+    outline-offset: -1.5px;
+  }
+}
+/* 動きを減らす：弾みと光の追従を止める */
+.reduce-motion[data-ui='glass'] *,
+.reduce-motion[data-ui='glass'] *::before {
+  transition-timing-function: ease !important;
+}
+.reduce-motion[data-ui='glass'] :is(.btn, .icon-btn, .menu-btn, .stamp-palette button, .menu-pop button):active:not(:disabled) {
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-ui='glass'] :is(.btn, .icon-btn, .menu-btn, .stamp-palette button, .menu-pop button):active:not(:disabled) {
+    transform: none;
+  }
+}

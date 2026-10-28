@@ -32,7 +32,7 @@ export function Results({ client, view, room, onExit }: { client: GameClient; vi
 
   return (
     <motion.div className="modal-back results-back" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-      <motion.div className={`modal results ${final ? 'final' : ''}`} initial={{ y: 40, scale: 0.9 }} animate={{ y: 0, scale: 1 }} transition={{ type: 'spring', stiffness: 260, damping: 22 }}>
+      <motion.div className={`modal lg results ${final ? 'final' : ''}`} initial={{ y: 40, scale: 0.9, opacity: 0 }} animate={{ y: 0, scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.28, duration: 0.55 }}>
         <div className="scroll-top" />
         <h2 className="res-title">{final ? '最終結果' : `第${view.gameNo}戦 結果`}</h2>
         {last?.gekokujo && <div className="res-banner">下剋上！ 身分がすべて逆転</div>}

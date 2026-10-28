@@ -21,6 +21,11 @@ import { Hand } from './Hand';
 import { Results } from './Results';
 import { Seat, seatLayout } from './Seat';
 
+/** Apple 風のばね：少し弾んで止まる */
+const SPRING_POP = { type: 'spring', bounce: 0.35, duration: 0.5 } as const;
+/** 形が変わるときのばね（弾みは控えめ） */
+const SPRING_MORPH = { type: 'spring', bounce: 0.22, duration: 0.45 } as const;
+
 export function Table({ client, onExit }: { client: GameClient; onExit: () => void }) {
   const snap = useClient(client);
   const settings = useSettings();
@@ -196,7 +201,7 @@ export function Table({ client, onExit }: { client: GameClient; onExit: () => vo
     <div className={`table-screen ${rev ? 'is-rev' : ''} ${view.revolution ? 'is-revolution' : ''} ${view.elevenBack ? 'is-eleven' : ''}`}>
       {/* ── 上部バー ── */}
       <header className="topbar">
-        <div className="tb-left">
+        <div className="tb-left lg">
           <span className="tb-logo">大富豪</span>
           <span className="tb-game">
             第<b>{view.gameNo}</b>戦<small>/{view.config.games}</small>
@@ -208,7 +213,7 @@ export function Table({ client, onExit }: { client: GameClient; onExit: () => vo
           )}
           {client.conn.mode !== 'local' && <span className="tb-room">ROOM {client.code}</span>}
         </div>
-        <div className="tb-right">
+        <div className="tb-right lg">
           <button className="icon-btn" title="ルール" onClick={() => setPanel(panel === 'rules' ? null : 'rules')}>
             <Icon name="book" />
           </button>
@@ -237,7 +242,7 @@ export function Table({ client, onExit }: { client: GameClient; onExit: () => vo
 
         {/* HUD */}
         <div className="hud">
-          <div className={`strength ${rev ? 'rev' : ''}`}>
+          <div className={`strength lg ${rev ? 'rev' : ''}`}>
             <span className="st-label">{view.revolution && view.elevenBack ? '革命+11バック' : view.revolution ? '革命中' : view.elevenBack ? '11バック中' : '通常'}</span>
             <span className="st-scale">
               <span className="st-weak">{rev ? '2' : '3'}</span>
@@ -247,14 +252,14 @@ export function Table({ client, onExit }: { client: GameClient; onExit: () => vo
               <span className="st-strong">{rev ? '3' : '2'}</span>
             </span>
           </div>
-          <div className="dir-chip" title="手番の回る向き">
+          <div className="dir-chip lg" title="手番の回る向き">
             <span className={`dir-icon ${view.direction === 1 ? 'cw' : 'ccw'}`}>
               <Icon name="rotate" size={15} />
             </span>
             {view.direction === 1 ? '時計回り' : '反時計回り'}
           </div>
           {(view.lockSuits || view.numberLock) && (
-            <motion.div className="lock-chip" initial={{ scale: 0 }} animate={{ scale: 1 }}>
+            <motion.div className="lock-chip lg" initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={SPRING_POP}>
               <Icon name="lock" size={15} />
               {view.lockSuits && view.numberLock ? '激縛り' : view.numberLock ? '数字縛り' : '縛り'}
               {view.lockSuits && (
@@ -314,7 +319,13 @@ export function Table({ client, onExit }: { client: GameClient; onExit: () => vo
 
         <AnimatePresence>
           {myTurn && !snap.effect && (
-            <motion.div className="your-turn" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+            <motion.div
+              className="your-turn lg"
+              initial={{ opacity: 0, y: 16, scale: 0.85 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.18 } }}
+              transition={SPRING_POP}
+            >
               あなたの番{remain !== null && <b className={remain <= 5 ? 'hurry' : ''}>{remain}</b>}
             </motion.div>
           )}
@@ -363,7 +374,7 @@ export function Table({ client, onExit }: { client: GameClient; onExit: () => vo
         )}
 
         <div className="action-bar">
-          <div className="ab-left">
+          <div className="ab-left lg">
             <button className="btn ghost sm" onClick={() => updateSettings({ sortMode: settings.sortMode === 'strength' ? 'suit' : 'strength' })} title="並べ替え">
               {settings.sortMode === 'strength' ? '強さ順' : 'マーク順'}
             </button>
@@ -377,7 +388,14 @@ export function Table({ client, onExit }: { client: GameClient; onExit: () => vo
               </button>
               <AnimatePresence>
                 {stampOpen && (
-                  <motion.div className="stamp-palette" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+                  <motion.div
+                    className="stamp-palette lg"
+                    style={{ transformOrigin: '0% 100%' }}
+                    initial={{ opacity: 0, scale: 0.6 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.15 } }}
+                    transition={SPRING_POP}
+                  >
                     {STAMPS.map((s, i) => (
                       <button key={i} onClick={() => sendStamp(i)}>
                         {s}
@@ -388,23 +406,38 @@ export function Table({ client, onExit }: { client: GameClient; onExit: () => vo
               </AnimatePresence>
             </div>
           </div>
-          <div className="ab-right">
-            {mode === 'play' && (
-              <>
-                <button className="btn pass" onClick={doPass} disabled={!view.field.length}>
-                  パス
-                </button>
-                <button className={`btn primary play ${foul ? 'danger' : ''}`} onClick={doPlay} disabled={!validation?.combo}>
-                  {confirmFoul ? '本当に出す？' : foul ? '反則上がり…' : '出す'}
-                </button>
-              </>
+          <AnimatePresence initial={false}>
+            {mode !== 'wait' && mode !== 'bomber' && (
+              <motion.div
+                key="dock"
+                layout
+                className="ab-right lg"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.85, transition: { duration: 0.16 } }}
+                transition={SPRING_MORPH}
+              >
+                <AnimatePresence mode="popLayout" initial={false}>
+                  {mode === 'play' ? (
+                    <motion.div key="play" className="ab-group" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={SPRING_MORPH}>
+                      <button className="btn pass" onClick={doPass} disabled={!view.field.length}>
+                        パス
+                      </button>
+                      <button className={`btn primary play ${foul ? 'danger' : ''}`} onClick={doPlay} disabled={!validation?.combo}>
+                        {confirmFoul ? '本当に出す？' : foul ? '反則上がり…' : '出す'}
+                      </button>
+                    </motion.div>
+                  ) : (
+                    <motion.div key={mode} className="ab-group" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={SPRING_MORPH}>
+                      <button className="btn primary" onClick={doSubmitChoice} disabled={selected.size !== needCount}>
+                        {mode === 'tenDiscard' ? '捨てる' : '渡す'} ({selected.size}/{needCount})
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
             )}
-            {(mode === 'exchange' || mode === 'sevenPass' || mode === 'tenDiscard') && (
-              <button className="btn primary" onClick={doSubmitChoice} disabled={selected.size !== needCount}>
-                {mode === 'tenDiscard' ? '捨てる' : '渡す'} ({selected.size}/{needCount})
-              </button>
-            )}
-          </div>
+          </AnimatePresence>
         </div>
       </div>
 
@@ -418,7 +451,13 @@ export function Table({ client, onExit }: { client: GameClient; onExit: () => vo
       {/* ── サイドパネル ── */}
       <AnimatePresence>
         {panel && panel !== 'menu' && (
-          <motion.aside className="side-panel" initial={{ x: 380 }} animate={{ x: 0 }} exit={{ x: 380 }} transition={{ type: 'spring', stiffness: 400, damping: 36 }}>
+          <motion.aside
+            className="side-panel lg"
+            initial={{ x: 400, opacity: 0.6 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 400, opacity: 0.6 }}
+            transition={{ type: 'spring', bounce: 0.18, duration: 0.5 }}
+          >
             <button className="close" onClick={() => setPanel(null)}>
               ×
             </button>
@@ -439,7 +478,14 @@ export function Table({ client, onExit }: { client: GameClient; onExit: () => vo
           </motion.aside>
         )}
         {panel === 'menu' && (
-          <motion.div className="menu-pop" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+          <motion.div
+            className="menu-pop lg"
+            style={{ transformOrigin: '100% 0%' }}
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.7, transition: { duration: 0.16 } }}
+            transition={SPRING_POP}
+          >
             <button onClick={() => updateSettings({ hints: !settings.hints })}>ヒント表示：{settings.hints ? 'ON' : 'OFF'}</button>
             {client.conn.mode === 'local' && (
               <button
@@ -464,7 +510,15 @@ export function Table({ client, onExit }: { client: GameClient; onExit: () => vo
       <div className="toasts">
         <AnimatePresence>
           {snap.toasts.map((t) => (
-            <motion.div key={t.id} className={`toast tone-${t.tone}`} initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+            <motion.div
+              key={t.id}
+              layout
+              className={`toast lg tone-${t.tone}`}
+              initial={{ opacity: 0, y: -16, scale: 0.85 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.18 } }}
+              transition={SPRING_POP}
+            >
               {t.text}
             </motion.div>
           ))}
@@ -473,7 +527,7 @@ export function Table({ client, onExit }: { client: GameClient; onExit: () => vo
 
       {snap.closed && (
         <div className="modal-back">
-          <div className="modal">
+          <div className="modal lg">
             <h2>接続が切れました</h2>
             <p>{snap.closed}</p>
             <button className="btn primary" onClick={onExit}>
@@ -493,7 +547,7 @@ function BomberPicker({ count, onDone, title }: { count: number; onDone: (r: num
   const ranks = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
   return (
     <motion.div className="modal-back" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-      <motion.div className="modal bomber" initial={{ scale: 0.8 }} animate={{ scale: 1 }}>
+      <motion.div className="modal lg bomber" initial={{ scale: 0.86, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={SPRING_POP}>
         <h2>{title}</h2>
         <p>全員に捨てさせる数字を {count} つ選んでください（自分も捨てます）</p>
         <div className="rank-grid">

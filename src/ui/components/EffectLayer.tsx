@@ -144,7 +144,7 @@ export function EffectLayer({ effect }: { effect: EffectItem | null }) {
               {effect.title}
             </motion.div>
             {effect.sub && (
-              <motion.div className="fx-sub" initial={{ y: 14, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: lite ? 0 : 0.15 }}>
+              <motion.div className="fx-sub lg" initial={{ y: 14, opacity: 0, scale: 0.9 }} animate={{ y: 0, opacity: 1, scale: 1 }} transition={{ type: 'spring', bounce: 0.3, duration: 0.5, delay: lite ? 0 : 0.15 }}>
                 {effect.sub}
               </motion.div>
             )}
