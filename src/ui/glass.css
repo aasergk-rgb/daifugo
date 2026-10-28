@@ -814,6 +814,10 @@
 }
 
 @media (max-width: 640px) {
+  [data-ui='glass'] .stamp-palette button {
+    font-size: 0.88rem;
+    padding: 7px 4px;
+  }
   [data-ui='glass'] .icon-btn {
     width: 38px;
     height: 38px;

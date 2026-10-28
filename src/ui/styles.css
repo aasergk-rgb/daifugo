@@ -1925,6 +1925,8 @@ input:focus {
   transform-origin: 50% 130%;
 }
 .action-bar {
+  position: relative;
+  z-index: 30;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1954,8 +1956,8 @@ input:focus {
 }
 .stamp-palette {
   position: absolute;
-  bottom: 125%;
-  left: 0;
+  bottom: calc(100% + 8px);
+  left: 4px;
   display: grid;
   grid-template-columns: repeat(4, auto);
   gap: 4px;
@@ -2609,6 +2611,14 @@ input:focus {
   .ab-left .btn {
     padding: 0.3em 0.55em;
     font-size: 0.78rem;
+  }
+  .stamp-palette {
+    width: calc(100vw - 28px);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .stamp-palette button {
+    font-size: 0.9rem;
+    padding: 6px 4px;
   }
   .status-line {
     width: 100%;

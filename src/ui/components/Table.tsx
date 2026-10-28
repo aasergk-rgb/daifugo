@@ -321,8 +321,8 @@ export function Table({ client, onExit }: { client: GameClient; onExit: () => vo
           {myTurn && !snap.effect && (
             <motion.div
               className="your-turn lg"
-              initial={{ opacity: 0, y: 16, scale: 0.85 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
+              initial={{ opacity: 0, x: '-50%', y: 16, scale: 0.85 }}
+              animate={{ opacity: 1, x: '-50%', y: 0, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.18 } }}
               transition={SPRING_POP}
             >
@@ -386,26 +386,27 @@ export function Table({ client, onExit }: { client: GameClient; onExit: () => vo
               <button className="btn ghost sm" onClick={() => setStampOpen(!stampOpen)} title="スタンプ">
                 <Icon name="smile" size={18} />
               </button>
-              <AnimatePresence>
-                {stampOpen && (
-                  <motion.div
-                    className="stamp-palette lg"
-                    style={{ transformOrigin: '0% 100%' }}
-                    initial={{ opacity: 0, scale: 0.6 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.15 } }}
-                    transition={SPRING_POP}
-                  >
-                    {STAMPS.map((s, i) => (
-                      <button key={i} onClick={() => sendStamp(i)}>
-                        {s}
-                      </button>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </div>
           </div>
+          {/* スタンプの一覧はガラスのカプセルの外に出す（ガラスを重ねない・手札の下に隠れない） */}
+          <AnimatePresence>
+            {stampOpen && (
+              <motion.div
+                className="stamp-palette lg"
+                style={{ transformOrigin: '0% 100%' }}
+                initial={{ opacity: 0, scale: 0.6 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.15 } }}
+                transition={SPRING_POP}
+              >
+                {STAMPS.map((s, i) => (
+                  <button key={i} onClick={() => sendStamp(i)}>
+                    {s}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
           <AnimatePresence initial={false}>
             {mode !== 'wait' && mode !== 'bomber' && (
               <motion.div

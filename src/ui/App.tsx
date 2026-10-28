@@ -91,7 +91,7 @@ export function App() {
       </AnimatePresence>
       <AnimatePresence>
         {liteNotice && (
-          <motion.div className="lite-notice lg" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+          <motion.div className="lite-notice lg" initial={{ opacity: 0, x: '-50%', y: 12 }} animate={{ opacity: 1, x: '-50%', y: 0 }} exit={{ opacity: 0 }}>
             動作が重いため、軽量モードに切り替えました（設定で変更できます）
           </motion.div>
         )}
